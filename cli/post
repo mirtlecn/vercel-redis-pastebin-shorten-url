@@ -84,8 +84,8 @@ print_json() {
 to_qrcode() {
   _input="$1"
   _len=$(printf '%s' "$_input" | wc -m | tr -d ' ')
-  if [ "$_len" -gt 100 ]; then
-    printf 'warning: input length %d > 100 chars, skipping QR code conversion\n' "$_len" >&2
+  if [ "$_len" -gt 250 ]; then
+    printf 'warning: input length %d > 250 chars, skipping QR code conversion\n' "$_len" >&2
     printf '%s' "$_input"
     return
   fi
