@@ -1,45 +1,5 @@
 /**
  * Main API handler for URL shortening service
- * 
- * ============================================================
- * Usage (curl examples)
- * ============================================================
- *
- * # 创建短链（自动生成路径）
- * curl -X POST https://your-domain.vercel.app \
- *   -H "Authorization: Bearer <SECRET_KEY>" \
- *   -H "Content-Type: application/json" \
- *   -d '{"url":"https://example.com"}'
- *
- * # 创建短链（指定路径）
- * curl -X POST https://your-domain.vercel.app \
- *   -H "Authorization: Bearer <SECRET_KEY>" \
- *   -H "Content-Type: application/json" \
- *   -d '{"url":"https://example.com","path":"mylink"}'
- *
- * # 创建短链（指定过期时间，单位：分钟）
- * curl -X POST https://your-domain.vercel.app \
- *   -H "Authorization: Bearer <SECRET_KEY>" \
- *   -H "Content-Type: application/json" \
- *   -d '{"url":"https://example.com","path":"mylink","ttl":60}'
- *
- * # 访问短链（重定向）
- * curl -L https://your-domain.vercel.app/mylink
- *
- * # 查询短链对应的目标 URL（需认证）
- * curl https://your-domain.vercel.app/mylink \
- *   -H "Authorization: Bearer <SECRET_KEY>"
- *
- * # 列出所有短链（需认证），返回 JSON 数组
- * curl https://your-domain.vercel.app \
- *   -H "Authorization: Bearer <SECRET_KEY>"
- *
- * # 删除短链
- * curl -X DELETE https://your-domain.vercel.app \
- *   -H "Authorization: Bearer <SECRET_KEY>" \
- *   -H "Content-Type: application/json" \
- *   -d '{"path":"mylink"}'
- *
  * ============================================================
  */
 
@@ -94,7 +54,7 @@ export default async function handler(req, res) {
 }
 
 /**
- * Handle POST requests - create shortened URL
+ * Handle POST requests - create shortened URL or pastebin
  */
 async function handlePOST(req, res) {
   if (getToken(req) !== process.env.SECRET_KEY) {
@@ -108,40 +68,49 @@ async function handlePOST(req, res) {
     return jsonResponse(res, { error: 'Invalid JSON body' }, 400);
   }
 
-  const { url: redirectURL, ttl } = body;
+  const { url: inputContent, ttl } = body;
   let { path } = body;
 
   if (!path) {
     path = [...Array(5)].map(i => (~~(Math.random() * 36)).toString(36)).join('');
   }
 
-  if (!redirectURL) {
+  if (!inputContent) {
     return jsonResponse(res, { error: '`url` is required' }, 400);
   }
 
-  // 如果没有 scheme，默认补充 https://
-  let finalURL = redirectURL;
-  if (!/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(redirectURL)) {
-    finalURL = 'https://' + redirectURL;
+  // Check if content is too large (10KB limit for text)
+  const contentSize = Buffer.byteLength(inputContent, 'utf8');
+  if (contentSize > 10240) {
+    return jsonResponse(res, { error: 'Content too large (max 10KB)' }, 400);
   }
 
+  // Try to parse as URL, if fails, treat as plain text
+  let finalContent = inputContent;
+  let isURL = false;
+  
   try {
-    new URL(finalURL);
+    new URL(inputContent);
+    // Valid URL with scheme
+    finalContent = inputContent;
+    isURL = true;
   } catch (e) {
-    if (e instanceof TypeError) {
-      return jsonResponse(res, { error: '`url` must be a valid URL' }, 400);
-    } else {
-      throw e;
-    }
+    // Not a valid URL, treat as plain text
+    isURL = false;
+    finalContent = inputContent;
   }
 
   const redis = await getRedisClient();
   const key = LINKS_PREFIX + path;
   
+  // Store metadata to distinguish URL from text
+  const metadata = isURL ? 'url:' : 'text:';
+  const storedValue = metadata + finalContent;
+  
   // Check if path already exists
   const existing = await redis.get(key);
   
-  // Set the URL with optional TTL
+  // Set the content with optional TTL
   let ttlWarning = null;
   let expiresIn = 'never';
   
@@ -152,10 +121,10 @@ async function handlePOST(req, res) {
       ttlWarning = 'invalid ttl, fallback to 1 minute';
     }
     const ttlSeconds = ttlMinutes * 60;
-    await redis.setEx(key, ttlSeconds, finalURL);
+    await redis.setEx(key, ttlSeconds, storedValue);
     expiresIn = `${ttlMinutes} minute(s)`;
   } else {
-    await redis.set(key, finalURL);
+    await redis.set(key, storedValue);
   }
 
   const protocol = req.headers['x-forwarded-proto'] || 'http';
@@ -165,18 +134,31 @@ async function handlePOST(req, res) {
   const result = {
     surl: `${domain}/${path}`,
     path,
-    url: finalURL,
     expires_in: expiresIn,
   };
   
-  if (existing) result.overwritten = existing;
+  if (isURL) {
+    result.url = finalContent;
+  } else {
+    result.text = finalContent.length > 15 ? finalContent.substring(0, 15) + '...' : finalContent;
+  }
+  
+  if (existing) {
+    const existingType = existing.startsWith('url:') ? 'url' : 'text';
+    const existingContent = existing.substring(existingType === 'url' ? 4 : 5);
+    if (existingType === 'text') {
+      result.overwritten = existingContent.length > 15 ? existingContent.substring(0, 15) + '...' : existingContent;
+    } else {
+      result.overwritten = existingContent;
+    }
+  }
   if (ttlWarning) result.warning = ttlWarning;
   
   return jsonResponse(res, result, 201);
 }
 
 /**
- * Handle DELETE requests - delete shortened URL
+ * Handle DELETE requests - delete shortened URL or pastebin
  */
 async function handleDELETE(req, res) {
   if (getToken(req) !== process.env.SECRET_KEY) {
@@ -204,7 +186,18 @@ async function handleDELETE(req, res) {
   }
 
   await redis.del(key);
-  return jsonResponse(res, { deleted: path, url: existing }, 200);
+  
+  const isURL = existing.startsWith('url:');
+  const content = existing.substring(isURL ? 4 : 5);
+  
+  const result = { deleted: path };
+  if (isURL) {
+    result.url = content;
+  } else {
+    result.text = content.length > 15 ? content.substring(0, 15) + '...' : content;
+  }
+  
+  return jsonResponse(res, result, 200);
 }
 
 /**
@@ -234,16 +227,27 @@ async function handleGET(req, res) {
     keys.push(...result.keys);
   } while (cursor !== '0');
   
-  // Get all URLs
+  // Get all URLs/texts
   const links = await Promise.all(
     keys.map(async (key) => {
       const path = key.slice(LINKS_PREFIX.length);
-      const url = await redis.get(key);
-      return {
+      const storedValue = await redis.get(key);
+      
+      const isURL = storedValue.startsWith('url:');
+      const content = storedValue.substring(isURL ? 4 : 5);
+      
+      const item = {
         surl: `${domain}/${path}`,
         path,
-        url,
       };
+      
+      if (isURL) {
+        item.url = content;
+      } else {
+        item.text = content.length > 15 ? content.substring(0, 15) + '...' : content;
+      }
+      
+      return item;
     })
   );
   

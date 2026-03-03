@@ -7,6 +7,11 @@ function jsonResponse(res, data, status = 200) {
   res.status(status).send(JSON.stringify(data) + '\n');
 }
 
+function textResponse(res, text) {
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.status(200).send(text);
+}
+
 function getToken(req) {
   const auth = req.headers['authorization'] || req.headers['Authorization'];
   if (!auth || !auth.startsWith('Bearer ')) return null;
@@ -26,28 +31,45 @@ export default async function handler(req, res) {
 
     const redis = await getRedisClient();
     const key = LINKS_PREFIX + path;
-    const redirectURL = await redis.get(key);
+    const storedValue = await redis.get(key);
     
-    if (!redirectURL) {
+    if (!storedValue) {
       return jsonResponse(res, { error: 'URL not found' }, 404);
     }
 
-    // If authenticated, return JSON info instead of redirecting
+    const isURL = storedValue.startsWith('url:');
+    const content = storedValue.substring(isURL ? 4 : 5);
+
+    // If authenticated, return JSON info instead of redirecting/displaying
     const token = getToken(req);
     if (token === process.env.SECRET_KEY) {
       const protocol = req.headers['x-forwarded-proto'] || 'http';
       const host = req.headers['x-forwarded-host'] || req.headers['host'];
       const domain = `${protocol}://${host}`;
-      return jsonResponse(res, { 
+      
+      const result = {
         surl: `${domain}/${path}`, 
-        path, 
-        url: redirectURL,
-      }, 200);
+        path,
+      };
+      
+      if (isURL) {
+        result.url = content;
+      } else {
+        result.text = content.length > 15 ? content.substring(0, 15) + '...' : content;
+      }
+      
+      return jsonResponse(res, result, 200);
     }
 
-    // Redirect to target URL
-    res.writeHead(302, { Location: redirectURL });
-    res.end();
+    // Not authenticated
+    if (isURL) {
+      // Redirect to target URL
+      res.writeHead(302, { Location: content });
+      res.end();
+    } else {
+      // Display plain text
+      textResponse(res, content);
+    }
   } catch (error) {
     console.error('Error:', error);
     return jsonResponse(res, { error: 'Internal server error' }, 500);
