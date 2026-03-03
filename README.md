@@ -45,9 +45,51 @@ SECRET_KEY=your-secret-key-here
 
 3. 访问 http://localhost:3001
 
-## API 使用示例
+### 封装 CLI
 
-### 短链接功能
+下载 `cli/post` 试用
+
+```bash
+> post help
+post - paste & short-URL manager
+
+Usage:
+  post new [opts] <text...>    Upload text
+  post new [opts] -f <file>    Upload file contents
+  post new [opts]              Upload clipboard contents (no -f, no text, no stdin)
+  echo "..." | post [new]      Upload from stdin
+  post ls                      List all posts
+  post ls <path>               Show a specific post
+  post rm <path>               Delete a post
+  post help | -h | --help      Show this help
+
+Options for 'new':
+  -f, --file <path>    Read content from file
+  -s, --slug <path>    Custom slug/path (default: auto-generated)
+  -t, --ttl <minutes>  Expiration time in minutes (default: never)
+  -y, --no-confirm     Skip confirmation prompt
+  -c, --qrcode         Convert input to QR code first
+
+Environment variables:
+  POST_HOST    Base endpoint URL (e.g. https://example.com)
+  POST_TOKEN   Bearer token
+
+Examples:
+  post new hello world
+  post new -f ~/notes.txt
+  post new -s mycode -f script.sh
+  post new -t 60 "expires in 1 hour"
+  post new -y "quick note"
+  post new                          # uploads clipboard
+  echo "piped" | post
+  echo "piped" | post new -s myslug
+  post ls
+  post ls myslug
+  post rm myslug
+```
+
+
+### API
 
 #### 创建短链（自动生成路径）
 ```bash
@@ -114,8 +156,6 @@ curl http://localhost:3001/mylink \
 }
 ```
 
-### Pastebin 功能
-
 #### 创建文本片段（自动生成路径）
 ```bash
 curl -X POST http://localhost:3001/ \
@@ -173,8 +213,6 @@ curl http://localhost:3001/script \
 ```
 
 > **注意**：文本内容会被截断为前 15 个字符 + `...`
-
-### 通用功能
 
 #### 列出所有短链和文本
 ```bash

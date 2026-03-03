@@ -1,0 +1,314 @@
+#!/bin/sh
+# post - paste & short-URL manager
+# Authors: mirtle, GitHub Copilot
+# Requires: curl, jq
+#           clipboard: pbcopy (macOS) | xclip/xsel (Linux) | pbpaste (macOS read)
+#
+# Usage:
+#   post new [opts] <text...>   Upload text
+#   post new [opts] -f <file>   Upload file contents
+#   post new [opts]             Upload clipboard contents (no -f, no text args, no stdin)
+#   echo "..." | post [new]     Upload from stdin
+#   post ls [path]              List all posts or show one
+#   post rm <path>              Delete a post
+#   post help | -h | --help     Show this help
+#
+# Options for 'new':
+#   -f, --file <path>    Read content from file
+#   -s, --slug <path>    Custom slug/path (default: auto-generated)
+#   -t, --ttl <minutes>  Expiration time in minutes (default: never)
+#   -y, --no-confirm     Skip confirmation prompt
+#   -c, --qrcode         Convert input to QR code first
+#
+# Environment variables:
+#   POST_HOST    Base endpoint URL (e.g. https://example.com)
+#   POST_TOKEN   Bearer token
+
+set -e
+
+POST_HOST="${POST_HOST}"
+POST_TOKEN="${POST_TOKEN}"
+
+# ══════════════════════════════════════════════════════════════
+# Helpers
+# ══════════════════════════════════════════════════════════════
+
+die() {
+  printf 'error: %s\n' "$*" >&2
+  exit 1
+}
+
+require_cmds() {
+  for _cmd in curl jq; do
+    command -v "$_cmd" >/dev/null 2>&1 || die "'$_cmd' is required but not found"
+  done
+}
+
+# ── clipboard ─────────────────────────────────────────────────
+
+clipboard_copy() {
+  if command -v pbcopy >/dev/null 2>&1; then
+    printf '%s' "$1" | pbcopy
+  elif command -v xclip >/dev/null 2>&1; then
+    printf '%s' "$1" | xclip -selection clipboard
+  elif command -v xsel >/dev/null 2>&1; then
+    printf '%s' "$1" | xsel --clipboard --input
+  else
+    printf 'warning: no clipboard write tool found (pbcopy/xclip/xsel)\n' >&2
+    return 1
+  fi
+}
+
+clipboard_paste() {
+  if command -v pbpaste >/dev/null 2>&1; then
+    pbpaste
+  elif command -v xclip >/dev/null 2>&1; then
+    xclip -selection clipboard -o
+  elif command -v xsel >/dev/null 2>&1; then
+    xsel --clipboard --output
+  else
+    die "no clipboard read tool found (pbpaste/xclip/xsel)"
+  fi
+}
+
+# ── pretty-print JSON ─────────────────────────────────────────
+
+print_json() {
+  printf '%s' "$1" | jq .
+}
+
+# ── QR code ───────────────────────────────────────────────────
+
+# to_qrcode <text>
+# Converts text to a UTF-8 QR code. Warns if input > 50 chars and skips conversion.
+to_qrcode() {
+  _input="$1"
+  _len=$(printf '%s' "$_input" | wc -m | tr -d ' ')
+  if [ "$_len" -gt 100 ]; then
+    printf 'warning: input length %d > 100 chars, skipping QR code conversion\n' "$_len" >&2
+    printf '%s' "$_input"
+    return
+  fi
+  if command -v qrencode >/dev/null 2>&1; then
+    _qr=$(qrencode -t UTF8 "$_input")
+  else
+    _qr=$(printf '%s' "$_input" | curl -sf -F-=\<- qrenco.de)
+  fi
+  _banner="📷 Scan this QR code"
+  printf '%s\n\n%s\n' "$_banner" "$_qr"
+}
+
+# ── auth header ───────────────────────────────────────────────
+
+auth_header() {
+  printf 'Authorization: Bearer %s' "$POST_TOKEN"
+}
+
+# ══════════════════════════════════════════════════════════════
+# API calls
+# ══════════════════════════════════════════════════════════════
+
+# api_post_new <content> <slug> <ttl>
+# Uploads content and returns the short URL.
+api_post_new() {
+  _content="$1"
+  _slug="$2"
+  _ttl="$3"
+
+  # Safely escape arbitrary content as a JSON string
+  _json_content=$(printf '%s' "$_content" | jq -Rs .)
+
+  _payload="{\"url\":${_json_content}"
+  [ -n "$_slug" ] && _payload="${_payload},\"path\":\"${_slug}\""
+  [ -n "$_ttl"  ] && _payload="${_payload},\"ttl\":${_ttl}"
+  _payload="${_payload}}"
+
+  _resp=$(curl -s -X POST "${POST_HOST}/" \
+    -H "$(auth_header)" \
+    -H "Content-Type: application/json" \
+    -d "$_payload")
+
+  if printf '%s' "$_resp" | jq -e '.error' >/dev/null 2>&1; then
+    _errmsg=$(printf '%s' "$_resp" | jq -r '.error')
+    die "API error: $_errmsg"
+  fi
+
+  _surl=$(printf '%s' "$_resp" | jq -r '.surl // empty')
+  [ -n "$_surl" ] || die "no URL returned from API; response: $_resp"
+
+  printf '%s\n' "$_surl"
+}
+
+# api_ls [path]
+api_ls() {
+  if [ -n "$1" ]; then
+    curl -sf -H "$(auth_header)" "${POST_HOST}/${1}"
+  else
+    curl -sf -H "$(auth_header)" "${POST_HOST}/"
+  fi
+}
+
+# api_rm <path>
+api_rm() {
+  curl -sf -X DELETE \
+    -H "$(auth_header)" \
+    -H "Content-Type: application/json" \
+    -d "{\"path\":\"${1}\"}" \
+    "${POST_HOST}/"
+}
+
+# ══════════════════════════════════════════════════════════════
+# Commands
+# ══════════════════════════════════════════════════════════════
+
+cmd_new() {
+  # ── parse options ──────────────────────────────────────────
+  _slug=""
+  _ttl=""
+  _confirm=1
+  _file=""
+  _qrcode=0
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -s|--slug)
+        [ -n "$2" ] || die "option $1 requires a value"
+        _slug="$2"; shift 2 ;;
+      -t|--ttl)
+        [ -n "$2" ] || die "option $1 requires a number (minutes)"
+        _ttl="$2"; shift 2 ;;
+      -y|--no-confirm)
+        _confirm=0; shift ;;
+      -f|--file)
+        [ -n "$2" ] || die "option $1 requires a file path"
+        _file="$2"; shift 2 ;;
+      -c|--qrcode)
+        _qrcode=1; shift ;;
+      --)
+        shift; break ;;
+      -*)
+        die "unknown option '$1'. Try: post help" ;;
+      *)
+        break ;;
+    esac
+  done
+
+  # ── resolve content & label ───────────────────────────────
+  if [ -n "$_file" ]; then
+    [ -f "$_file" ] || die "file not found: $_file"
+    _content=$(cat "$_file")
+    _label="[File]: $_file"
+  elif [ $# -gt 0 ]; then
+    _content="$*"
+    _label="[Text&Link]: $*"
+  elif [ ! -t 0 ]; then
+    _content=$(cat)
+    _label="[Pipe]"
+  else
+    # no args, no stdin → read clipboard
+    _content=$(clipboard_paste)
+    _label="[Clipboard]"
+  fi
+
+  [ -n "$_content" ] || die "content is empty"
+
+  # ── qrcode conversion ─────────────────────────────────────
+  if [ "$_qrcode" = "1" ]; then
+    _content=$(to_qrcode "$_content")
+  fi
+
+  # ── confirm ───────────────────────────────────────────────
+  if [ "$_confirm" = "1" ]; then
+    printf '%s\n' "$_label" >&2
+    [ -n "$_slug" ] && printf '[Slug]: %s\n'          "$_slug" >&2
+    [ -n "$_ttl"  ] && printf '[Expire after]: %s min\n' "$_ttl" >&2
+    printf '[Post on]: %s? (y/N) ' "$POST_HOST" >&2
+    read -r _answer </dev/tty
+    case "$_answer" in
+      [yY]|[yY][eE][sS]) ;;
+      *) printf 'Aborted.\n' >&2; exit 0 ;;
+    esac
+  fi
+
+  # ── upload ────────────────────────────────────────────────
+  _url=$(api_post_new "$_content" "$_slug" "$_ttl")
+
+  clipboard_copy "$_url" \
+    && printf 'Copied to clipboard: %s\n' "$_url" \
+    || printf 'URL: %s\n' "$_url"
+}
+
+cmd_ls() {
+  print_json "$(api_ls "$1")"
+}
+
+cmd_rm() {
+  [ -n "$1" ] || die "usage: post rm <path>"
+  print_json "$(api_rm "$1")"
+}
+
+cmd_help() {
+  cat <<'EOF'
+post - paste & short-URL manager
+
+Usage:
+  post new [opts] <text...>    Upload text
+  post new [opts] -f <file>    Upload file contents
+  post new [opts]              Upload clipboard contents (no -f, no text, no stdin)
+  echo "..." | post [new]      Upload from stdin
+  post ls                      List all posts
+  post ls <path>               Show a specific post
+  post rm <path>               Delete a post
+  post help | -h | --help      Show this help
+
+Options for 'new':
+  -f, --file <path>    Read content from file
+  -s, --slug <path>    Custom slug/path (default: auto-generated)
+  -t, --ttl <minutes>  Expiration time in minutes (default: never)
+  -y, --no-confirm     Skip confirmation prompt
+  -c, --qrcode         Convert input to QR code first
+
+Environment variables:
+  POST_HOST    Base endpoint URL (e.g. https://example.com)
+  POST_TOKEN   Bearer token
+
+Examples:
+  post new hello world
+  post new -f ~/notes.txt
+  post new -s mycode -f script.sh
+  post new -t 60 "expires in 1 hour"
+  post new -y "quick note"
+  post new                          # uploads clipboard
+  echo "piped" | post
+  echo "piped" | post new -s myslug
+  post ls
+  post ls myslug
+  post rm myslug
+
+EOF
+}
+
+# ══════════════════════════════════════════════════════════════
+# Dispatch
+# ══════════════════════════════════════════════════════════════
+
+require_cmds
+
+# If stdin is a pipe and first arg is NOT a subcommand → treat as 'new'
+if [ ! -t 0 ]; then
+  case "${1:-}" in
+    new|ls|rm|help|--help|-h) ;;   # recognised subcommand, fall through
+    *) set -- new "$@" ;;           # prepend 'new'
+  esac
+fi
+
+cmd="${1:-help}"
+[ $# -gt 0 ] && shift
+
+case "$cmd" in
+  new)              cmd_new  "$@" ;;
+  ls)               cmd_ls   "$@" ;;
+  rm)               cmd_rm   "$@" ;;
+  help|--help|-h)   cmd_help      ;;
+  *)  die "unknown command '${cmd}'. Try: post help" ;;
+esac
