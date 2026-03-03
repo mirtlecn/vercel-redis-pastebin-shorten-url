@@ -78,15 +78,11 @@ createServer((req, res) => {
     return handleApiRoot(req, res);
   }
 
-  // Route: /:path  →  api/[path].js  (GET only)
-  const match = pathname.match(/^\/([^/]+)$/);
-  if (match) {
-    req.query.path = match[1];
-    return handleApiPath(req, res);
-  }
-
-  // 404 fallback
-  res.status(404).send('Not found\n');
+  // Route: everything else  →  api/[path].js
+  // Strip the leading slash and pass the rest as-is to the handler.
+  // Let the handler (and Redis) decide if the key exists.
+  req.query.path = pathname.slice(1);
+  return handleApiPath(req, res);
 }).listen(PORT, () => {
   console.log(`\n✅  Server running at http://localhost:${PORT}`);
   console.log(`    Press Ctrl+C to stop.\n`);
