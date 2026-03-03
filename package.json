@@ -3,8 +3,10 @@
   "version": "1.0.0",
   "description": "A simple Vercel project",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "start": "vercel dev"
+    "start": "node server.js",
+    "vercel": "vercel dev"
   },
   "keywords": [],
   "author": "",
