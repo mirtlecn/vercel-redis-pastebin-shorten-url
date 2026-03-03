@@ -115,18 +115,19 @@ api_post_new() {
   _slug="$2"
   _ttl="$3"
 
-  # Safely escape arbitrary content as a JSON string
-  _json_content=$(printf '%s' "$_content" | jq -Rs .)
-
-  _payload="{\"url\":${_json_content}"
-  [ -n "$_slug" ] && _payload="${_payload},\"path\":\"${_slug}\""
-  [ -n "$_ttl"  ] && _payload="${_payload},\"ttl\":${_ttl}"
-  _payload="${_payload}}"
-
-  _resp=$(curl -s -X POST "${POST_HOST}/" \
-    -H "$(auth_header)" \
-    -H "Content-Type: application/json" \
-    -d "$_payload")
+  # Build payload via a pipe to avoid arg length limits
+  _resp=$(
+    {
+      printf '{"url":'
+      printf '%s' "$_content" | jq -Rs .
+      [ -n "$_slug" ] && printf ',"path":"%s"' "$_slug"
+      [ -n "$_ttl"  ] && printf ',"ttl":%s'   "$_ttl"
+      printf '}'
+    } | curl -s -X POST "${POST_HOST}/" \
+      -H "$(auth_header)" \
+      -H "Content-Type: application/json" \
+      --data-binary @-
+  )
 
   if printf '%s' "$_resp" | jq -e '.error' >/dev/null 2>&1; then
     _errmsg=$(printf '%s' "$_resp" | jq -r '.error')
