@@ -154,6 +154,61 @@ to_md2html() {
     }
   }
 </style>
+<script>
+  // GitHub Markdown head ids
+  // https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#section-links
+  function githubSlug(text) {
+    return text
+      .toLowerCase()
+      .replace(/\p{M}/gu, '')
+      .replace(/\s+/g, '-')
+      .replace(/[^\p{L}\p{N}\-]/gu, '')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
+  function scrollToHash(hash) {
+    if (!hash) return;
+    const id = decodeURIComponent(hash.slice(1));
+    const target = document.getElementById(id);
+    if (target) {
+      target.scrollIntoView();
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    const slugCount = {};
+
+    headings.forEach(function (heading) {
+      const text = heading.textContent;
+      let slug = githubSlug(text);
+      if (slugCount[slug] !== undefined) {
+        slugCount[slug]++;
+        slug = slug + '-' + slugCount[slug];
+      } else {
+        slugCount[slug] = 0;
+      }
+
+      heading.id = slug;
+    });
+
+    document.querySelectorAll('a[href^="#"]').forEach(function (link) {
+      link.addEventListener('click', function (e) {
+        const hash = link.getAttribute('href');
+        if (hash && hash.startsWith('#')) {
+          const target = document.getElementById(decodeURIComponent(hash.slice(1)));
+          if (target) {
+            e.preventDefault();
+            target.scrollIntoView({ behavior: 'smooth' });
+            history.pushState(null, '', hash);
+          }
+        }
+      });
+    });
+    scrollToHash(location.hash);
+  });
+</script>
 </head>
 <body>
 <article class="markdown-body">
