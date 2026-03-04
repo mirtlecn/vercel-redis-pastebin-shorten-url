@@ -7,6 +7,7 @@
  *   path     {string}  可选，自定义路径；省略时随机生成 5 位（PUT 时必填）
  *   type     {string}  可选，'url' | 'text' | 'html'；省略时自动检测
  *   ttl      {number}  可选，过期时间（分钟）
+ *   convert  {string}  可选，'md2html' | 'qrcode' | 'html' | 'url' | 'text'
  *
  * 响应：
  *   POST 201  创建成功
@@ -24,6 +25,7 @@ import {
   getDomain,
   parseRequestBody,
 } from '../utils/storage.js';
+import { convertMarkdownToHtml, convertToQrCode } from '../utils/converter.js';
 
 /** 随机生成 5 位 base-36 路径 */
 function randomPath() {
@@ -52,7 +54,7 @@ async function write(req, res, { allowOverwrite }) {
     return jsonResponse(res, { error: 'Invalid JSON body' }, 400);
   }
 
-  const { url: inputContent, ttl, type: inputType } = body;
+  let { url: inputContent, ttl, type: inputType, convert } = body;
   let { path } = body;
 
   if (!inputContent) {
@@ -61,6 +63,41 @@ async function write(req, res, { allowOverwrite }) {
 
   if (inputType !== undefined && !['url', 'text', 'html'].includes(inputType)) {
     return jsonResponse(res, { error: '`type` must be one of: url, text, html' }, 400);
+  }
+
+  // ── 转换处理 ──────────────────────────────────────────────
+  if (convert) {
+    switch (convert) {
+      case 'md2html':
+        try {
+          inputContent = convertMarkdownToHtml(inputContent);
+          inputType = 'html';  // 自动设置类型为 html
+        } catch (error) {
+          return jsonResponse(res, { error: error.message }, 400);
+        }
+        break;
+
+      case 'qrcode':
+        try {
+          inputContent = await convertToQrCode(inputContent);
+          // QR 码结果是纯文本，保持原 type 或默认为 text
+        } catch (error) {
+          return jsonResponse(res, { error: error.message }, 400);
+        }
+        break;
+
+      case 'html':
+      case 'url':
+      case 'text':
+        // 仅设置类型，不做转换
+        inputType = convert;
+        break;
+
+      default:
+        return jsonResponse(res, {
+          error: `Invalid convert value: ${convert}. Must be one of: md2html, qrcode, html, url, text`
+        }, 400);
+    }
   }
 
   // 内容大小限制

@@ -80,96 +80,6 @@ print_json() {
   printf '%s' "$1" | jq .
 }
 
-# ── QR code ───────────────────────────────────────────────────
-
-# to_qrcode <text>
-# Converts text to a UTF-8 QR code. Warns if input > 250 chars and skips conversion.
-to_qrcode() {
-  _input="$1"
-  _len=$(printf '%s' "$_input" | wc -m | tr -d ' ')
-  if [ "$_len" -gt 250 ]; then
-    printf 'warning: input length %d > 250 chars, skipping QR code conversion\n' "$_len" >&2
-    printf '%s' "$_input"
-    return
-  fi
-  if command -v qrencode >/dev/null 2>&1; then
-    _qr=$(qrencode -t UTF8i "$_input")
-  else
-    _qr=$(printf '%s' "$_input" | curl -sf -F-=\<- qrenco.de)
-  fi
-  _banner="📷 Scan this QR code"
-  printf '%s\n\n%s\n' "$_banner" "$_qr"
-}
-
-# to_md2html <text>
-# Converts Markdown to HTML.
-# Prefers pandoc if available, otherwise falls back to GitHub API (requires GITHUB_TOKEN).
-to_md2html() {
-  _md_input="$1"
-  _md_css='https://cdn.jsdelivr.net/gh/sindresorhus/github-markdown-css/github-markdown.css'
-  _md_title=''
-  _md_bg='#0d1117'
-
-  if [ -n "$GITHUB_TOKEN" ]; then
-    _md_body=$(
-      printf '%s' "$_md_input" \
-        | jq -Rs '{"text": ., "mode": "gfm"}' \
-        | curl -sf -X POST "https://api.github.com/markdown" \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            -H "Authorization: token $GITHUB_TOKEN" \
-            -H "Content-Type: application/json" \
-            --data-binary @-
-    )
-    [ -n "$_md_body" ] || die "empty response from GitHub API"
-  elif command -v pandoc >/dev/null 2>&1; then
-    _md_body=$(printf '%s' "$_md_input" | pandoc -f gfm -t html)
-    [ -n "$_md_body" ] || die "empty output from pandoc"
-  else
-    die "no markdown conversion program available (set GITHUB_TOKEN or install pandoc)"
-  fi
-
-  cat <<MDEOF
-<!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, minimal-ui">
-<title>${_md_title}</title>
-<link rel="stylesheet" href="${_md_css}">
-<style>
-  body {
-    box-sizing: border-box;
-    min-width: 200px;
-    max-width: 980px;
-    margin: 0 auto;
-    padding: 45px;
-  }
-  .markdown-body .markdown-alert {
-    padding: 0.5rem 1rem;
-  }
-  @media (prefers-color-scheme: dark) {
-    body {
-      background-color: ${_md_bg};
-    }
-  }
-  @media (max-width: 767px) {
-    body {
-      max-width: 100%;
-      padding: 25px;
-    }
-  }
-</style>
-</head>
-<body>
-<article class="markdown-body">
-${_md_body}
-</article>
-</body>
-</html>
-MDEOF
-}
-
 # ── auth header ───────────────────────────────────────────────
 
 auth_header() {
@@ -180,7 +90,7 @@ auth_header() {
 # API calls
 # ══════════════════════════════════════════════════════════════
 
-# api_post_new <content> <slug> <ttl> <type> <method>
+# api_post_new <content> <slug> <ttl> <type> <convert> <method>
 # Uploads content and returns the short URL.
 # method: POST (fail on conflict) | PUT (overwrite)
 api_post_new() {
@@ -188,16 +98,18 @@ api_post_new() {
   _slug="$2"
   _ttl="$3"
   _type="$4"
-  _method="${5:-POST}"
+  _convert="$5"
+  _method="${6:-POST}"
 
   # Build payload via a pipe to avoid arg length limits
   _resp=$(
     {
       printf '{"url":'
       printf '%s' "$_content" | jq -Rs .
-      [ -n "$_slug" ] && printf ',"path":"%s"' "$_slug"
-      [ -n "$_ttl"  ] && printf ',"ttl":%s'   "$_ttl"
-      [ -n "$_type" ] && printf ',"type":"%s"' "$_type"
+      [ -n "$_slug"    ] && printf ',"path":"%s"' "$_slug"
+      [ -n "$_ttl"     ] && printf ',"ttl":%s'   "$_ttl"
+      [ -n "$_type"    ] && printf ',"type":"%s"' "$_type"
+      [ -n "$_convert" ] && printf ',"convert":"%s"' "$_convert"
       printf '}'
     } | curl -s -X "$_method" "${POST_HOST}/" \
       -H "$(auth_header)" \
@@ -310,25 +222,14 @@ cmd_new() {
 
   [ -n "$_content" ] || die "content is empty"
 
-  # ── convert ───────────────────────────────────────────────
+  # ── convert (服务端处理，客户端仅设置类型) ──────────────────
   _type=""
   case "$_convert" in
-    qrcode)
-      _content=$(to_qrcode "$_content")
-      # qrcode result is plain text
+    qrcode|md2html)
+      # 不做本地转换，传递给服务端处理
       ;;
-    md2html)
-      _content=$(to_md2html "$_content")
-      _type="html"
-      ;;
-    html)
-      _type="html"
-      ;;
-    url)
-      _type="url"
-      ;;
-    text)
-      _type="text"
+    html|url|text)
+      _type="$_convert"
       ;;
   esac
 
@@ -349,7 +250,7 @@ cmd_new() {
   fi
 
   # ── upload ────────────────────────────────────────────────
-  _url=$(api_post_new "$_content" "$_slug" "$_ttl" "$_type" "$_method")
+  _url=$(api_post_new "$_content" "$_slug" "$_ttl" "$_type" "$_convert" "$_method")
 
   clipboard_copy "$_url" \
     && printf 'Copied to clipboard: %s\n' "$_url" \
