@@ -109,11 +109,7 @@ to_md2html() {
   _md_title=''
   _md_bg='#0d1117'
 
-  if command -v pandoc >/dev/null 2>&1; then
-    _md_body=$(printf '%s' "$_md_input" | pandoc -f gfm -t html)
-    [ -n "$_md_body" ] || die "empty output from pandoc"
-  else
-    [ -n "$GITHUB_TOKEN" ] || die "GITHUB_TOKEN is not set (required for md2html without pandoc)"
+  if [ -n "$GITHUB_TOKEN" ]; then
     _md_body=$(
       printf '%s' "$_md_input" \
         | jq -Rs '{"text": ., "mode": "gfm"}' \
@@ -125,6 +121,11 @@ to_md2html() {
             --data-binary @-
     )
     [ -n "$_md_body" ] || die "empty response from GitHub API"
+  elif command -v pandoc >/dev/null 2>&1; then
+    _md_body=$(printf '%s' "$_md_input" | pandoc -f gfm -t html)
+    [ -n "$_md_body" ] || die "empty output from pandoc"
+  else
+    die "no markdown conversion program available (set GITHUB_TOKEN or install pandoc)"
   fi
 
   cat <<MDEOF
