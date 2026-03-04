@@ -101,27 +101,31 @@ to_qrcode() {
 }
 
 # to_md2html <text>
-# Converts Markdown to HTML via GitHub API (requires GITHUB_TOKEN).
+# Converts Markdown to HTML.
+# Prefers pandoc if available, otherwise falls back to GitHub API (requires GITHUB_TOKEN).
 to_md2html() {
   _md_input="$1"
   _md_css='https://cdn.jsdelivr.net/gh/sindresorhus/github-markdown-css/github-markdown.css'
   _md_title=''
   _md_bg='#0d1117'
 
-  [ -n "$GITHUB_TOKEN" ] || die "GITHUB_TOKEN is not set (required for md2html)"
-
-  _md_body=$(
-    printf '%s' "$_md_input" \
-      | jq -Rs '{"text": ., "mode": "gfm"}' \
-      | curl -sf -X POST "https://api.github.com/markdown" \
-          -H "Accept: application/vnd.github+json" \
-          -H "X-GitHub-Api-Version: 2022-11-28" \
-          -H "Authorization: token $GITHUB_TOKEN" \
-          -H "Content-Type: application/json" \
-          --data-binary @-
-  )
-
-  [ -n "$_md_body" ] || die "empty response from GitHub API"
+  if command -v pandoc >/dev/null 2>&1; then
+    _md_body=$(printf '%s' "$_md_input" | pandoc -f gfm -t html)
+    [ -n "$_md_body" ] || die "empty output from pandoc"
+  else
+    [ -n "$GITHUB_TOKEN" ] || die "GITHUB_TOKEN is not set (required for md2html without pandoc)"
+    _md_body=$(
+      printf '%s' "$_md_input" \
+        | jq -Rs '{"text": ., "mode": "gfm"}' \
+        | curl -sf -X POST "https://api.github.com/markdown" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data-binary @-
+    )
+    [ -n "$_md_body" ] || die "empty response from GitHub API"
+  fi
 
   cat <<MDEOF
 <!doctype html>
@@ -154,61 +158,6 @@ to_md2html() {
     }
   }
 </style>
-<script>
-  // GitHub Markdown head ids
-  // https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#section-links
-  function githubSlug(text) {
-    return text
-      .toLowerCase()
-      .replace(/\p{M}/gu, '')
-      .replace(/\s+/g, '-')
-      .replace(/[^\p{L}\p{N}\-]/gu, '')
-      .replace(/-+/g, '-')
-      .replace(/^-+|-+$/g, '');
-  }
-
-  function scrollToHash(hash) {
-    if (!hash) return;
-    const id = decodeURIComponent(hash.slice(1));
-    const target = document.getElementById(id);
-    if (target) {
-      target.scrollIntoView();
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', function () {
-    const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
-    const slugCount = {};
-
-    headings.forEach(function (heading) {
-      const text = heading.textContent;
-      let slug = githubSlug(text);
-      if (slugCount[slug] !== undefined) {
-        slugCount[slug]++;
-        slug = slug + '-' + slugCount[slug];
-      } else {
-        slugCount[slug] = 0;
-      }
-
-      heading.id = slug;
-    });
-
-    document.querySelectorAll('a[href^="#"]').forEach(function (link) {
-      link.addEventListener('click', function (e) {
-        const hash = link.getAttribute('href');
-        if (hash && hash.startsWith('#')) {
-          const target = document.getElementById(decodeURIComponent(hash.slice(1)));
-          if (target) {
-            e.preventDefault();
-            target.scrollIntoView({ behavior: 'smooth' });
-            history.pushState(null, '', hash);
-          }
-        }
-      });
-    });
-    scrollToHash(location.hash);
-  });
-</script>
 </head>
 <body>
 <article class="markdown-body">
