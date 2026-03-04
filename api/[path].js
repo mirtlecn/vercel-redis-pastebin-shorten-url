@@ -9,7 +9,7 @@ function jsonResponse(res, data, status = 200) {
 
 function textResponse(res, text) {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-  res.status(200).send(text);
+  res.status(200).send(text + '\n');
 }
 
 function getToken(req) {
