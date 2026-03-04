@@ -269,7 +269,8 @@ async function handleGET(req, res) {
       if (isURL) {
         item.url = content;
       } else {
-        item.text = content.length > 15 ? content.substring(0, 15) + '...' : content;
+        const isExport = req.headers['x-export'] === 'true';
+        item.text = (!isExport && content.length > 15) ? content.substring(0, 15) + '...' : content;
       }
       
       return item;

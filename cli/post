@@ -10,6 +10,7 @@
 #   post new [opts]             Upload clipboard contents (no -f, no text args, no stdin)
 #   echo "..." | post [new]     Upload from stdin
 #   post ls [path]              List all posts or show one
+#   post export                 Export all posts with full text
 #   post rm <path>              Delete a post
 #   post help | -h | --help     Show this help
 #
@@ -149,6 +150,14 @@ api_ls() {
   fi
 }
 
+# api_export
+api_export() {
+  curl -sf \
+    -H "$(auth_header)" \
+    -H "X-Export: true" \
+    "${POST_HOST}/"
+}
+
 # api_rm <path>
 api_rm() {
   curl -sf -X DELETE \
@@ -243,6 +252,10 @@ cmd_ls() {
   print_json "$(api_ls "$1")"
 }
 
+cmd_export() {
+  print_json "$(api_export)"
+}
+
 cmd_rm() {
   [ -n "$1" ] || die "usage: post rm <path>"
   print_json "$(api_rm "$1")"
@@ -257,8 +270,9 @@ Usage:
   post new [opts] -f <file>    Upload file contents
   post new [opts]              Upload clipboard contents (no -f, no text, no stdin)
   echo "..." | post [new]      Upload from stdin
-  post ls                      List all posts
+  post ls                      List all posts (truncated text)
   post ls <path>               Show a specific post
+  post export                  Export all posts with full text
   post rm <path>               Delete a post
   post help | -h | --help      Show this help
 
@@ -307,9 +321,10 @@ cmd="${1:-help}"
 [ $# -gt 0 ] && shift
 
 case "$cmd" in
-  new)              cmd_new  "$@" ;;
-  ls)               cmd_ls   "$@" ;;
-  rm)               cmd_rm   "$@" ;;
-  help|--help|-h)   cmd_help      ;;
+  new)              cmd_new    "$@" ;;
+  ls)               cmd_ls     "$@" ;;
+  export)           cmd_export      ;;
+  rm)               cmd_rm     "$@" ;;
+  help|--help|-h)   cmd_help        ;;
   *)  die "unknown command '${cmd}'. Try: post help" ;;
 esac
