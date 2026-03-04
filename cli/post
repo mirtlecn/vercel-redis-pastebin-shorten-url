@@ -277,7 +277,7 @@ api_export() {
 
 # api_rm <path>
 api_rm() {
-  curl -sf -X DELETE \
+  curl -s -X DELETE \
     -H "$(auth_header)" \
     -H "Content-Type: application/json" \
     -d "{\"path\":\"${1}\"}" \
