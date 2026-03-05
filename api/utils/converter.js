@@ -24,7 +24,7 @@ import qrcode from 'qrcode-terminal';
 export function convertMarkdownToHtml(markdown) {
   try {
     // marked.use(
-    //   { gfm: true, breaks: true },
+    //   { gfm: true, breaks: false },
     //   markedAlert(),
     //   markedFootnote(),
     //   gfmHeadingId(),
@@ -37,7 +37,7 @@ export function convertMarkdownToHtml(markdown) {
     //   })
     // );
     marked.use(
-      { gfm: true, breaks: true },
+      { gfm: true, breaks: false },
       markedAlert(),
       markedFootnote(),
       gfmHeadingId()
