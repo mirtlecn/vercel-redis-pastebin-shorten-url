@@ -13,7 +13,7 @@ import { getS3Object, isS3Configured } from './utils/s3.js';
 
 export default async function handler(req, res) {
   try {
-    const { path } = req.query;
+    const path = decodeURIComponent(req.url).slice(1);
 
     if (!path) return jsonResponse(res, { error: 'URL not found' }, 404);
 

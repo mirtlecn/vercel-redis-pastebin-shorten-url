@@ -19,7 +19,13 @@ function loadEnv() {
       const eqIdx = trimmed.indexOf('=');
       if (eqIdx === -1) continue;
       const key = trimmed.slice(0, eqIdx).trim();
-      const value = trimmed.slice(eqIdx + 1).trim();
+      let value = trimmed.slice(eqIdx + 1).trim();
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1);
+      }
       if (!process.env[key]) process.env[key] = value;
     }
     console.log(`Loaded env from: ${file}`);
@@ -61,17 +67,12 @@ function wrapRes(res) {
 createServer((req, res) => {
   wrapRes(res);
 
-  // 解码 percent-encoded URL，统一使用原始字符串作为 Redis key
-  // e.g. "/%E6%B5%8B%E8%AF%95" → "/测试" → key "测试"
-  const raw = decodeURIComponent(req.url);
-
   // Route: /  →  api/index.js  (all methods)
-  if (raw === '/') {
+  if (req.url === '/') {
     return handleApiRoot(req, res);
   }
 
   // Route: everything else  →  api/[path].js
-  req.query = { path: raw.slice(1) };
   return handleApiPath(req, res);
 }).listen(PORT, () => {
   console.log(`\n✅  Server running at http://localhost:${PORT}`);
