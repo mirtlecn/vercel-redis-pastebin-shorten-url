@@ -61,17 +61,12 @@ function wrapRes(res) {
 createServer((req, res) => {
   wrapRes(res);
 
-  // 解码 percent-encoded URL，统一使用原始字符串作为 Redis key
-  // e.g. "/%E6%B5%8B%E8%AF%95" → "/测试" → key "测试"
-  const raw = decodeURIComponent(req.url);
-
   // Route: /  →  api/index.js  (all methods)
-  if (raw === '/') {
+  if (req.url === '/') {
     return handleApiRoot(req, res);
   }
 
   // Route: everything else  →  api/[path].js
-  req.query = { path: raw.slice(1) };
   return handleApiPath(req, res);
 }).listen(PORT, () => {
   console.log(`\n✅  Server running at http://localhost:${PORT}`);
