@@ -18,11 +18,37 @@ export function ListPanel({ items, onCopy, onDelete, page, setPage }) {
     <section className="panel-box">
       <div className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-base-content/55">Links</div>
       <div className="list-scroll max-h-[30rem] overflow-auto rounded-[1.5rem] border border-base-300/70">
-        <table className="table table-zebra">
-          <thead><tr><th>Path</th><th>Type</th><th>TTL</th><th>Preview</th><th className="text-right">Actions</th></tr></thead>
+        <table className="table table-zebra table-fixed w-full">
+          <thead>
+            <tr>
+              <th className="w-[14rem]">Path</th>
+              <th className="w-[8rem]">Type</th>
+              <th className="w-[8rem]">TTL</th>
+              <th>Preview</th>
+              <th className="w-[14rem] text-right">Actions</th>
+            </tr>
+          </thead>
           <tbody>
             {rows.map((item) => (
-              <tr key={item.path}><td>{item.path}</td><td>{item.type}</td><td className="whitespace-nowrap text-base-content/65">{ttlLabel(item.ttl)}</td><td className="max-w-md truncate">{item.content}</td><td><div className="flex justify-end gap-2"><IconButton icon={icons.open} onClick={() => window.open(item.surl, '_blank', 'noreferrer')} title="Open" /><IconButton icon={icons.copy} onClick={() => onCopy(item.surl)} title="Copy" /><IconButton className="text-error hover:bg-error/10" icon={icons.delete} onClick={() => onDelete(item.path)} title="Delete" /></div></td></tr>
+              <tr key={item.path}>
+                <td className="w-[14rem] max-w-[14rem]">
+                  <span className="block truncate" title={item.path}>{item.path}</span>
+                </td>
+                <td className="w-[8rem] max-w-[8rem]">
+                  <span className="block truncate" title={item.type}>{item.type}</span>
+                </td>
+                <td className="w-[8rem] max-w-[8rem] whitespace-nowrap text-base-content/65">
+                  <span className="block truncate" title={ttlLabel(item.ttl)}>{ttlLabel(item.ttl)}</span>
+                </td>
+                <td className="max-w-md truncate" title={item.content}>{item.content}</td>
+                <td>
+                  <div className="flex justify-end gap-2">
+                    <IconButton icon={icons.open} onClick={() => window.open(item.surl, '_blank', 'noreferrer')} title="Open" />
+                    <IconButton icon={icons.copy} onClick={() => onCopy(item.surl)} title="Copy" />
+                    <IconButton className="text-error hover:bg-error/10" icon={icons.delete} onClick={() => onDelete(item.path)} title="Delete" />
+                  </div>
+                </td>
+              </tr>
             ))}
           </tbody>
         </table>

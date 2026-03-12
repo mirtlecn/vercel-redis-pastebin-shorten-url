@@ -13,6 +13,7 @@ export function LoginView({ password, onChange, onSubmit, isBusy, error }) {
             <div className="login-brand">
               <div className="login-badge" />
               <h1 className="login-title">Post</h1>
+              <p className="login-subtitle">Lightweight file, text &amp; URL sharing service</p>
             </div>
             <form className={error ? 'animate-shake-soft' : ''} onSubmit={onSubmit}>
               <label className={`input input-lg login-input ${error ? 'login-input-error' : ''}`}>
@@ -33,6 +34,11 @@ export function LoginView({ password, onChange, onSubmit, isBusy, error }) {
                 </button>
               </label>
             </form>
+          </div>
+          <div className="login-corner-meta">
+            <span>© Mirtle</span>
+            <span className="app-footer-sep">·</span>
+            <a href="https://github.com/mirtlecn/post" rel="noreferrer" target="_blank">Source code</a>
           </div>
         </div>
       </div>

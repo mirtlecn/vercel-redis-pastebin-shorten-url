@@ -44,11 +44,11 @@ export function Dashboard({ onLogout, token }) {
   }
 
   return (
-    <section className="mx-auto max-w-6xl px-5 py-6">
-      <header className="panel-box mb-6 flex items-center justify-between"><button className="dashboard-title text-5xl font-black" onClick={refreshPage} type="button">Post</button><div className="flex gap-2"><IconButton icon={icons.refresh} onClick={refreshPage} title="Refresh" /><IconButton icon={icons.logout} onClick={onLogout} title="Logout" /></div></header>
+      <section className="mx-auto max-w-6xl px-5 py-6">
+      <header className="panel-box mb-6 flex items-center justify-between"><button className="dashboard-title text-5xl font-black" onClick={refreshPage} type="button">Post</button><div className="flex gap-2"><IconButton icon={icons.logout} onClick={onLogout} title="Logout" /></div></header>
       <CreatePanel notify={showToast} onCreated={created} token={token} />
       <div className="my-6"><ResultPanel onCopy={copy} result={result} /></div>
-      <ListPanel items={items} onCopy={copy} onDelete={remove} page={page} setPage={setPage} />
+      {items.length > 0 && <ListPanel items={items} onCopy={copy} onDelete={remove} page={page} setPage={setPage} />}
       <ToastLayer onClose={clearToast} toast={toast} />
     </section>
   );

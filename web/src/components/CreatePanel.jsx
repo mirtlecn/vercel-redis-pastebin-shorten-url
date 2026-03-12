@@ -1,17 +1,20 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { icons } from '../icons/Icons.jsx';
 import { useComposer } from '../hooks/useComposer.js';
 
 export function CreatePanel(props) {
   const composer = useComposer(props);
+  const [globalDragging, setGlobalDragging] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const globalDragDepthRef = useRef(0);
   const fileInputRef = useRef(null);
   const CloseIcon = icons.close;
   const FileBadgeIcon = icons.fileBadge;
+  const DropFileIcon = icons.file;
   const PathIcon = icons.hash;
   const TtlIcon = icons.clock;
   const convertMeta = {
-    none: { icon: icons.sparkles, label: 'none' },
+    none: { icon: icons.sparkles, label: 'auto type' },
     md2html: { icon: icons.sparkles, label: 'md2html' },
     qrcode: { icon: icons.hash, label: 'qrcode' },
     html: { icon: icons.fileBadge, label: 'html' },
@@ -20,25 +23,91 @@ export function CreatePanel(props) {
   };
   const CurrentConvertIcon = convertMeta[composer.form.convert]?.icon || icons.sparkles;
 
+  function hasFiles(event) {
+    const types = event.dataTransfer?.types;
+    return Array.isArray(types) ? types.includes('Files') : Array.from(types || []).includes('Files');
+  }
+
+  useEffect(() => {
+    function onWindowDragEnter(event) {
+      if (!hasFiles(event)) return;
+      event.preventDefault();
+      globalDragDepthRef.current += 1;
+      setGlobalDragging(true);
+    }
+
+    function onWindowDragOver(event) {
+      if (!hasFiles(event)) return;
+      event.preventDefault();
+      if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+      if (!globalDragging) setGlobalDragging(true);
+    }
+
+    function onWindowDragLeave(event) {
+      if (!hasFiles(event)) return;
+      event.preventDefault();
+      globalDragDepthRef.current = Math.max(0, globalDragDepthRef.current - 1);
+      if (globalDragDepthRef.current === 0) {
+        setGlobalDragging(false);
+        setDragging(false);
+      }
+    }
+
+    function onWindowDrop(event) {
+      if (!hasFiles(event)) return;
+      event.preventDefault();
+      globalDragDepthRef.current = 0;
+      setGlobalDragging(false);
+      setDragging(false);
+    }
+
+    window.addEventListener('dragenter', onWindowDragEnter);
+    window.addEventListener('dragover', onWindowDragOver);
+    window.addEventListener('dragleave', onWindowDragLeave);
+    window.addEventListener('drop', onWindowDrop);
+    return () => {
+      window.removeEventListener('dragenter', onWindowDragEnter);
+      window.removeEventListener('dragover', onWindowDragOver);
+      window.removeEventListener('dragleave', onWindowDragLeave);
+      window.removeEventListener('drop', onWindowDrop);
+    };
+  }, [globalDragging]);
+
   function openPicker() {
     fileInputRef.current?.click();
   }
 
   function onDrop(event) {
+    if (!hasFiles(event)) return;
     event.preventDefault();
+    globalDragDepthRef.current = 0;
+    setGlobalDragging(false);
     setDragging(false);
     composer.setFile(event.dataTransfer.files?.[0] || null);
   }
 
   return (
     <section className="panel-box composer-panel">
-      <div className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-base-content/55">Composer</div>
+      <div className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-base-content/55">New</div>
       <form className="grid gap-3 animate-fade-up" onSubmit={composer.submit}>
         <div
-          className={`composer-shell ${dragging ? 'composer-shell-dragging' : ''}`}
-          onDragEnter={() => setDragging(true)}
-          onDragLeave={() => setDragging(false)}
-          onDragOver={(event) => event.preventDefault()}
+          className={`composer-shell ${globalDragging ? 'composer-shell-global-drag' : ''} ${dragging ? 'composer-shell-dragging' : ''}`}
+          onDragEnter={(event) => {
+            if (!hasFiles(event)) return;
+            event.preventDefault();
+            setDragging(true);
+          }}
+          onDragLeave={(event) => {
+            if (!hasFiles(event)) return;
+            event.preventDefault();
+            setDragging(false);
+          }}
+          onDragOver={(event) => {
+            if (!hasFiles(event)) return;
+            event.preventDefault();
+            setDragging(true);
+            if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+          }}
           onDrop={onDrop}
         >
           {composer.fileMeta ? (
@@ -63,7 +132,7 @@ export function CreatePanel(props) {
           ) : (
             <div className="composer-editor">
               <textarea
-                className="textarea textarea-ghost composer-textarea"
+                className={`textarea textarea-ghost composer-textarea ${globalDragging ? 'composer-textarea-hidden' : ''}`}
                 onChange={composer.set('url')}
                 onKeyDown={composer.onShortcut}
                 placeholder="Input text here or drag and drop file"
@@ -74,6 +143,13 @@ export function CreatePanel(props) {
                   <icons.file className="size-4 opacity-60" strokeWidth={2.1} />
                 </button>
               </div>
+              {globalDragging && (
+                <div className={`composer-drop-overlay ${dragging ? 'composer-drop-overlay-ready' : ''}`}>
+                  <DropFileIcon className="size-10" strokeWidth={2.1} />
+                  <div className="composer-drop-title">Drop file here</div>
+                  <div className="composer-drop-subtitle">{dragging ? 'Release to upload' : 'Move into the input area to upload'}</div>
+                </div>
+              )}
             </div>
           )}
           <input className="hidden" onChange={(e) => composer.setFile(e.target.files?.[0] || null)} ref={fileInputRef} type="file" />
@@ -81,7 +157,7 @@ export function CreatePanel(props) {
         <div className="toolbar-grid">
           <div className="field-shell field-shell-fixed input input-bordered">
             <PathIcon className="size-4 opacity-60" strokeWidth={2} />
-            <input className="grow" onChange={composer.set('path')} placeholder="custom/path" value={composer.form.path} />
+            <input className="grow" onChange={composer.set('path')} placeholder="custom/url/slug" value={composer.form.path} />
           </div>
           <div className="field-shell field-shell-fixed input input-bordered">
             <TtlIcon className="size-4 opacity-60" strokeWidth={2} />
@@ -97,7 +173,7 @@ export function CreatePanel(props) {
             <div className="select-shell">
               <CurrentConvertIcon className="select-shell-icon size-4 opacity-60" strokeWidth={2} />
               <select className="select select-bordered select-shell-input" onChange={composer.set('convert')} value={composer.form.convert}>
-                <option value="none">none</option>
+                <option value="auto">auto type</option>
                 <option value="md2html">md2html</option>
                 <option value="qrcode">qrcode</option>
                 <option value="html">html</option>
