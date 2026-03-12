@@ -20,6 +20,7 @@ export function useComposer({ notify, onCreated, token }) {
   const [file, setFile] = useState(null);
   const [form, setForm] = useState(initial);
   const set = (key) => (e) => setForm((v) => ({ ...v, [key]: e.target.value }));
+  const setValue = (key, value) => setForm((v) => ({ ...v, [key]: value }));
 
   async function submit(event) {
     event.preventDefault();
@@ -71,5 +72,5 @@ export function useComposer({ notify, onCreated, token }) {
   const fileMeta = getFileMeta(file);
   const canSubmit = Boolean(file || form.url.trim()) && !busy;
 
-  return { busy, canSubmit, file, fileMeta, form, onShortcut, reset, set, setFile, submit };
+  return { busy, canSubmit, file, fileMeta, form, onShortcut, reset, set, setFile, setValue, submit };
 }

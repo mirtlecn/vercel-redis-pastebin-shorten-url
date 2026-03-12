@@ -10,22 +10,23 @@ export function CreatePanel(props) {
   const fileInputRef = useRef(null);
   const CloseIcon = icons.close;
   const FileBadgeIcon = icons.fileBadge;
-  const DropFileIcon = icons.file;
+  const UploadIcon = icons.file;
   const PathIcon = icons.hash;
   const TtlIcon = icons.clock;
   const convertMeta = {
-    none: { icon: icons.sparkles, label: 'auto type' },
-    md2html: { icon: icons.sparkles, label: 'md2html' },
-    qrcode: { icon: icons.hash, label: 'qrcode' },
-    html: { icon: icons.fileBadge, label: 'html' },
-    url: { icon: icons.link, label: 'url' },
-    text: { icon: icons.hash, label: 'text' },
+    none: { icon: icons.sparkles },
+    md2html: { icon: icons.fileCode },
+    qrcode: { icon: icons.qrcode },
+    html: { icon: icons.fileBadge },
+    url: { icon: icons.link },
+    text: { icon: icons.text },
   };
   const CurrentConvertIcon = convertMeta[composer.form.convert]?.icon || icons.sparkles;
+  const PATH_PATTERN = '[A-Za-z0-9_.\\-()/]{1,99}';
 
   function hasFiles(event) {
-    const types = event.dataTransfer?.types;
-    return Array.isArray(types) ? types.includes('Files') : Array.from(types || []).includes('Files');
+    const types = Array.from(event.dataTransfer?.types || []);
+    return types.includes('Files');
   }
 
   useEffect(() => {
@@ -40,7 +41,7 @@ export function CreatePanel(props) {
       if (!hasFiles(event)) return;
       event.preventDefault();
       if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
-      if (!globalDragging) setGlobalDragging(true);
+      setGlobalDragging(true);
     }
 
     function onWindowDragLeave(event) {
@@ -71,7 +72,7 @@ export function CreatePanel(props) {
       window.removeEventListener('dragleave', onWindowDragLeave);
       window.removeEventListener('drop', onWindowDrop);
     };
-  }, [globalDragging]);
+  }, []);
 
   function openPicker() {
     fileInputRef.current?.click();
@@ -84,6 +85,16 @@ export function CreatePanel(props) {
     setGlobalDragging(false);
     setDragging(false);
     composer.setFile(event.dataTransfer.files?.[0] || null);
+  }
+
+  function onPathChange(event) {
+    const normalized = event.target.value.replace(/[^a-zA-Z0-9_.\-()/]/g, '').slice(0, 99);
+    composer.setValue('path', normalized);
+  }
+
+  function onTtlChange(event) {
+    const digits = event.target.value.replace(/\D/g, '');
+    composer.setValue('ttl', digits);
   }
 
   return (
@@ -140,12 +151,12 @@ export function CreatePanel(props) {
               />
               <div className="tooltip tooltip-left composer-upload-wrap" data-tip="Upload file">
                 <button className="btn btn-ghost btn-sm composer-upload" onClick={openPicker} type="button">
-                  <icons.file className="size-4 opacity-60" strokeWidth={2.1} />
+                  <UploadIcon className="size-4 opacity-60" strokeWidth={2.1} />
                 </button>
               </div>
               {globalDragging && (
                 <div className={`composer-drop-overlay ${dragging ? 'composer-drop-overlay-ready' : ''}`}>
-                  <DropFileIcon className="size-10" strokeWidth={2.1} />
+                  <UploadIcon className="size-10" strokeWidth={2.1} />
                   <div className="composer-drop-title">Drop file here</div>
                   <div className="composer-drop-subtitle">{dragging ? 'Release to upload' : 'Move into the input area to upload'}</div>
                 </div>
@@ -157,11 +168,29 @@ export function CreatePanel(props) {
         <div className="toolbar-grid">
           <div className="field-shell field-shell-fixed input input-bordered">
             <PathIcon className="size-4 opacity-60" strokeWidth={2} />
-            <input className="grow" onChange={composer.set('path')} placeholder="custom/url/slug" value={composer.form.path} />
+            <input
+              className="grow"
+              maxLength={99}
+              onChange={onPathChange}
+              pattern={PATH_PATTERN}
+              placeholder="custom/url/slug"
+              title="1-99 chars: a-z A-Z 0-9 - _ . / ( )"
+              value={composer.form.path}
+            />
           </div>
           <div className="field-shell field-shell-fixed input input-bordered">
             <TtlIcon className="size-4 opacity-60" strokeWidth={2} />
-            <input className="grow" onChange={composer.set('ttl')} placeholder="1440" value={composer.form.ttl} />
+            <input
+              className="grow"
+              inputMode="numeric"
+              min={1}
+              onChange={onTtlChange}
+              pattern="[0-9]*"
+              placeholder="1440"
+              title="TTL in minutes, positive integer"
+              type="text"
+              value={composer.form.ttl}
+            />
             <span className="opacity-55">mins</span>
           </div>
           {composer.file ? (
@@ -173,7 +202,7 @@ export function CreatePanel(props) {
             <div className="select-shell">
               <CurrentConvertIcon className="select-shell-icon size-4 opacity-60" strokeWidth={2} />
               <select className="select select-bordered select-shell-input" onChange={composer.set('convert')} value={composer.form.convert}>
-                <option value="auto">auto type</option>
+                <option value="none">auto type</option>
                 <option value="md2html">md2html</option>
                 <option value="qrcode">qrcode</option>
                 <option value="html">html</option>
