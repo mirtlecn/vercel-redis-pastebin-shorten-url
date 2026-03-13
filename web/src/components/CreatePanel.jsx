@@ -99,16 +99,16 @@ export function CreatePanel(props) {
 
   function onPathChange(event) {
     const normalized = event.target.value.replace(/[^a-zA-Z0-9_.\-()/]/g, '').slice(0, 99);
-    composer.setValue('path', normalized);
+    composer.updateFormValue('path', normalized);
   }
 
   function onTtlChange(event) {
     const digits = event.target.value.replace(/\D/g, '');
-    composer.setValue('ttl', digits);
+    composer.updateFormValue('ttl', digits);
   }
 
   function onConvertChange(event) {
-    composer.set('convert')(event);
+    composer.createFieldChangeHandler('convert')(event);
     requestAnimationFrame(() => {
       setSelectOpen(false);
       const select = selectRef.current;
@@ -163,7 +163,7 @@ export function CreatePanel(props) {
               <textarea
                 ref={textareaRef}
                 className={`textarea textarea-ghost composer-textarea ${globalDragging ? 'composer-textarea-hidden' : ''}`}
-                onChange={composer.set('url')}
+                onChange={composer.createFieldChangeHandler('url')}
                 onKeyDown={composer.onShortcut}
                 placeholder=""
                 value={composer.form.url}

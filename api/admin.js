@@ -1,9 +1,9 @@
 /**
- * GUI 管理接口（仅供 /admin 前端使用）
+ * Admin API entry for the /admin frontend.
  *
- * 认证规则：
- * - 入口认证：ADMIN_KEY（未设置时回退 SECRET_KEY）
- * - 下游 API：始终使用 SECRET_KEY
+ * Authentication rules:
+ * - Entry authentication uses ADMIN_KEY and falls back to SECRET_KEY.
+ * - Downstream API calls always use SECRET_KEY.
  */
 
 import handleApiRoot from './index.js';

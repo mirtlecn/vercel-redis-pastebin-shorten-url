@@ -18,7 +18,7 @@ export function useSession() {
     try {
       await sessionRequest({ method: 'DELETE' });
     } catch {
-      // 登出失败时也直接清本地界面状态，避免卡在已登录视图。
+      // Keep the local UI consistent even if logout fails on the server.
     }
     clearSession();
   }, [clearSession]);

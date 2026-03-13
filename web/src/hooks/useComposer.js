@@ -18,8 +18,10 @@ export function useComposer({ notify, onCreated }) {
   const [busy, setBusy] = useState(false);
   const [file, setFile] = useState(null);
   const [form, setForm] = useState(INITIAL_FORM);
-  const set = (key) => (event) => setForm((value) => ({ ...value, [key]: event.target.value }));
-  const setValue = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+  const createFieldChangeHandler = (fieldName) => (event) =>
+    setForm((currentForm) => ({ ...currentForm, [fieldName]: event.target.value }));
+  const updateFormValue = (fieldName, fieldValue) =>
+    setForm((currentForm) => ({ ...currentForm, [fieldName]: fieldValue }));
 
   async function submit(event) {
     event.preventDefault();
@@ -71,5 +73,17 @@ export function useComposer({ notify, onCreated }) {
   const fileMeta = getFileMeta(file);
   const canSubmit = Boolean(file || form.url.trim()) && !busy;
 
-  return { busy, canSubmit, file, fileMeta, form, onShortcut, reset, set, setFile, setValue, submit };
+  return {
+    busy,
+    canSubmit,
+    createFieldChangeHandler,
+    file,
+    fileMeta,
+    form,
+    onShortcut,
+    reset,
+    setFile,
+    submit,
+    updateFormValue,
+  };
 }
