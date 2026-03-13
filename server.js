@@ -58,7 +58,7 @@ const [
 ]);
 
 const PORT = process.env.PORT || 3000;
-const DIST_DIR = resolve(process.cwd(), 'dist');
+const ADMIN_DIR = resolve(process.cwd(), 'public', 'admin');
 const MIME_TYPES = {
   '.css': 'text/css; charset=utf-8',
   '.html': 'text/html; charset=utf-8',
@@ -98,7 +98,7 @@ async function serveAdminShell(res, indexPath) {
 async function tryServeAdmin(req, res) {
   const { pathname } = getRequestUrl(req);
 
-  const indexPath = resolve(DIST_DIR, 'index.html');
+  const indexPath = resolve(ADMIN_DIR, 'index.html');
 
   if (pathname === '/admin' || pathname === '/admin/') {
     if (!existsSync(indexPath)) {
@@ -126,9 +126,9 @@ async function tryServeAdmin(req, res) {
 
   const relativePath = pathname.slice('/admin/'.length);
   const safePath = normalize(relativePath).replace(/^(\.\.(\/|\\|$))+/, '');
-  const filePath = resolve(DIST_DIR, safePath);
+  const filePath = resolve(ADMIN_DIR, safePath);
 
-  if (!filePath.startsWith(DIST_DIR) || !existsSync(filePath)) {
+  if (!filePath.startsWith(ADMIN_DIR) || !existsSync(filePath)) {
     res.statusCode = 404;
     res.end('Not found');
     return true;

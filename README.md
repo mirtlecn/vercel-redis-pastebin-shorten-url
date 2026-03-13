@@ -144,11 +144,11 @@ curl "$POST_BASE_URL" \
 
 ## CLI wrap for Shell
 
-<https://github.com/mirtlecn/post-go/post-cli>
+<https://github.com/mirtlecn/post-go/blob/master/post-cli>
 
 ## SKILL for AI Agent
 
-<https://github.com/mirtlecn/post-go/skills>
+<https://github.com/mirtlecn/post-go/tree/master/skills/>
 
 ## License
 
