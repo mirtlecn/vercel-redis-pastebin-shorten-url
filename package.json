@@ -10,7 +10,10 @@
     "dev:api": "node server.js",
     "dev:web": "vite",
     "start": "node server.js",
-    "vercel": "vercel dev"
+    "vercel": "vercel dev",
+    "test:functional": "bash scripts/test-functional.sh",
+    "test:functional:local": "bash scripts/run-functional-local.sh",
+    "test:functional:vercel": "bash scripts/run-functional-vercel.sh"
   },
   "keywords": [],
   "author": "Mirtle",

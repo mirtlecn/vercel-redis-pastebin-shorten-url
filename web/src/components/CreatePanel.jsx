@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { icons } from '../icons/Icons.jsx';
 import { useComposer } from '../hooks/useComposer.js';
 
-const PATH_PATTERN = '[A-Za-z0-9_.\\-()/]{1,99}';
+const PATH_PATTERN = '[A-Za-z0-9_.\\/\\(\\)\\-]{1,99}';
 const CONVERT_META = {
   none: { icon: icons.sparkles },
   md2html: { icon: icons.fileCode },

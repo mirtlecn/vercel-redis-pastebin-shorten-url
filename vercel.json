@@ -1,33 +1,22 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "outputDirectory": ".",
-  "routes": [
+  "outputDirectory": "dist",
+  "rewrites": [
     {
-      "handle": "filesystem"
+      "source": "/admin/assets/:path*",
+      "destination": "/assets/:path*"
     },
     {
-      "src": "^/admin/?$",
-      "dest": "/dist/index.html"
+      "source": "/admin",
+      "destination": "/index.html"
     },
     {
-      "src": "^/admin/(.+)$",
-      "dest": "/dist/$1"
+      "source": "/",
+      "destination": "/api"
     },
     {
-      "src": "^/api/admin$",
-      "dest": "/api/admin.js"
-    },
-    {
-      "src": "^/api/admin/session$",
-      "dest": "/api/admin/session.js"
-    },
-    {
-      "src": "^/$",
-      "dest": "/api"
-    },
-    {
-      "src": "^/(.+)$",
-      "dest": "/api?path=$1"
+      "source": "/:path((?!admin(?:/|$)|api(?:/|$)|assets(?:/|$)|_vercel(?:/|$)).*)",
+      "destination": "/api/:path*"
     }
   ]
 }

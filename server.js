@@ -44,15 +44,15 @@ if (missing.length > 0) {
   process.exit(1);
 }
 
-// Dynamic imports so api modules read process.env AFTER loadEnv()
+// Dynamic imports so handlers read process.env AFTER loadEnv()
 const [
-  { default: handleApiRoot },
-  { default: handleApiPath },
-  { default: handleAdminApi },
-  { default: handleAdminSessionApi },
+  { default: handleRoot },
+  { default: handlePublic },
+  { default: handleAdmin },
+  { default: handleAdminSession },
 ] = await Promise.all([
   import('./api/index.js'),
-  import('./api/[path].js'),
+  import('./lib/handlers/public.js'),
   import('./api/admin.js'),
   import('./api/admin/session.js'),
 ]);
@@ -72,12 +72,11 @@ const MIME_TYPES = {
   '.woff2': 'font/woff2',
 };
 
-function isRoute(url, pathname) {
-  return url === pathname || url.startsWith(`${pathname}?`);
+function getRequestUrl(req) {
+  return new URL(req.url, `http://${req.headers.host || 'localhost'}`);
 }
 
-// Wrap Node.js IncomingMessage/ServerResponse to match the minimal interface
-// that api/index.js and api/[path].js expect (same as Vercel's req/res).
+// Match the small response surface shared by local handlers and Vercel functions.
 function wrapRes(res) {
   res.status = (code) => { res.statusCode = code; return res; };
   res.setHeader = res.setHeader.bind(res); // already exists on ServerResponse
@@ -90,24 +89,38 @@ function wrapRes(res) {
   return res;
 }
 
-async function tryServeAdmin(req, res) {
-  const requestUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-  const { pathname } = requestUrl;
+async function serveAdminShell(res, indexPath) {
+  const html = await readFile(indexPath, 'utf8');
+  res.setHeader('Cache-Control', 'no-store');
+  htmlResponse(res, html, false);
+}
 
-  if (pathname !== '/admin' && pathname !== '/admin/' && !pathname.startsWith('/admin/')) {
-    return false;
-  }
+async function tryServeAdmin(req, res) {
+  const { pathname } = getRequestUrl(req);
 
   const indexPath = resolve(DIST_DIR, 'index.html');
-  if (!existsSync(indexPath)) {
-    htmlResponse(res, `<!doctype html><html><body style="font-family:sans-serif;padding:32px;"><h1>Admin UI not built</h1><p>Run <code>npm run build</code> first, then restart the server.</p></body></html>`, false);
+
+  if (pathname === '/admin' || pathname === '/admin/') {
+    if (!existsSync(indexPath)) {
+      htmlResponse(res, `<!doctype html><html><body style="font-family:sans-serif;padding:32px;"><h1>Admin UI not built</h1><p>Run <code>npm run build</code> first, then restart the server.</p></body></html>`, false);
+      return true;
+    }
+    await serveAdminShell(res, indexPath);
     return true;
   }
 
-  if (pathname === '/admin' || pathname === '/admin/') {
-    const html = await readFile(indexPath, 'utf8');
-    res.setHeader('Cache-Control', 'no-store');
-    htmlResponse(res, html, false);
+  if (!pathname.startsWith('/admin/')) {
+    return false;
+  }
+
+  if (!pathname.startsWith('/admin/assets/')) {
+    res.statusCode = 404;
+    res.end('Not found');
+    return true;
+  }
+
+  if (!existsSync(indexPath)) {
+    htmlResponse(res, `<!doctype html><html><body style="font-family:sans-serif;padding:32px;"><h1>Admin UI not built</h1><p>Run <code>npm run build</code> first, then restart the server.</p></body></html>`, false);
     return true;
   }
 
@@ -116,9 +129,8 @@ async function tryServeAdmin(req, res) {
   const filePath = resolve(DIST_DIR, safePath);
 
   if (!filePath.startsWith(DIST_DIR) || !existsSync(filePath)) {
-    const html = await readFile(indexPath, 'utf8');
-    res.setHeader('Cache-Control', 'no-store');
-    htmlResponse(res, html, false);
+    res.statusCode = 404;
+    res.end('Not found');
     return true;
   }
 
@@ -133,6 +145,7 @@ async function tryServeAdmin(req, res) {
 
 createServer(async (req, res) => {
   wrapRes(res);
+  const { pathname } = getRequestUrl(req);
 
   try {
     if (await tryServeAdmin(req, res)) return;
@@ -143,21 +156,21 @@ createServer(async (req, res) => {
     return;
   }
 
-  if (isRoute(req.url, '/api/admin/session')) {
-    return handleAdminSessionApi(req, res);
+  if (pathname === '/api/admin/session') {
+    return handleAdminSession(req, res);
   }
 
-  if (isRoute(req.url, '/api/admin')) {
-    return handleAdminApi(req, res);
+  if (pathname === '/api/admin') {
+    return handleAdmin(req, res);
   }
 
   // Route: /  →  api/index.js  (all methods)
-  if (req.url === '/') {
-    return handleApiRoot(req, res);
+  if (pathname === '/') {
+    return handleRoot(req, res);
   }
 
-  // Route: everything else  →  api/[path].js
-  return handleApiPath(req, res);
+  // Route: everything else  →  public content handler
+  return handlePublic(req, res);
 }).listen(PORT, () => {
   console.log(`\n✅  Server running at http://localhost:${PORT}`);
   console.log(`    Press Ctrl+C to stop.\n`);
