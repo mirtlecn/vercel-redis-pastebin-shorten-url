@@ -18,9 +18,6 @@ import { respondByType } from '../lib/utils/serve.js';
 
 export default async function handler(req, res) {
   try {
-    const requestUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-    const publicPath = requestUrl.searchParams.get('path');
-
     switch (req.method) {
       case 'POST':
         if (!isAuthenticated(req)) return errorResponse(res, { code: 'unauthorized', message: 'Unauthorized' }, 401);
@@ -40,7 +37,7 @@ export default async function handler(req, res) {
           return await handleList(req, res);
         }
         // 未认证：根路径和公开 path 都从这里处理
-        return await handlePublicGet(req, res, publicPath);
+        return await handlePublicGet(req, res);
 
       default:
         return errorResponse(res, { code: 'method_not_allowed', message: 'Method not allowed' }, 405);
@@ -90,8 +87,10 @@ async function handleLookupAuthedFromBody(req, res) {
 /**
  * 未认证的 GET：path 为空时查找 '/'，否则按公开短链查找。
  */
-async function handlePublicGet(req, res, publicPath) {
-  const path = publicPath ? decodeURIComponent(publicPath) : '/';
+async function handlePublicGet(req, res) {
+  const requestUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const path = getPublicPath(requestUrl);
+  console.log('Public GET request for path:', path);
   const redis = await getRedisClient();
   const stored = await redis.get(LINKS_PREFIX + path);
 
@@ -99,4 +98,8 @@ async function handlePublicGet(req, res, publicPath) {
 
   const { type, content } = parseStoredValue(stored);
   return await respondByType(req, res, { type, content, path, redis });
+}
+
+function getPublicPath(requestUrl) {
+  return requestUrl.pathname === '/' ? '/' : decodeURIComponent(requestUrl.pathname.slice(1));
 }

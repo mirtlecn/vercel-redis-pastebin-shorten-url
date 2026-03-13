@@ -47,12 +47,10 @@ if (missing.length > 0) {
 // Dynamic imports so handlers read process.env AFTER loadEnv()
 const [
   { default: handleRoot },
-  { default: handlePublic },
   { default: handleAdmin },
   { default: handleAdminSession },
 ] = await Promise.all([
   import('./api/index.js'),
-  import('./lib/handlers/public.js'),
   import('./api/admin.js'),
   import('./api/admin/session.js'),
 ]);
@@ -164,13 +162,7 @@ createServer(async (req, res) => {
     return handleAdmin(req, res);
   }
 
-  // Route: /  →  api/index.js  (all methods)
-  if (pathname === '/') {
-    return handleRoot(req, res);
-  }
-
-  // Route: everything else  →  public content handler
-  return handlePublic(req, res);
+  return handleRoot(req, res);
 }).listen(PORT, () => {
   console.log(`\n✅  Server running at http://localhost:${PORT}`);
   console.log(`    Press Ctrl+C to stop.\n`);
