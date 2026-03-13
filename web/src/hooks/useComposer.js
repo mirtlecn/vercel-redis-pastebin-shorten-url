@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { apiRequest, uploadFile } from '../lib/api.js';
 
 const INITIAL_FORM = { convert: 'none', path: '', ttl: '', url: '' };
+const PATH_SANITIZE_PATTERN = /[^a-zA-Z0-9_.\-()/]/g;
 
 function getFileMeta(file) {
   if (!file) return null;
@@ -12,6 +13,30 @@ function getFileMeta(file) {
     name: file.name,
     size,
   };
+}
+
+function normalizePathValue(value) {
+  return value.replace(PATH_SANITIZE_PATTERN, '').slice(0, 99);
+}
+
+function normalizeTtlValue(value) {
+  return value.replace(/\D/g, '');
+}
+
+function buildTextRequestBody(form) {
+  const body = { url: form.url.trim() };
+  if (form.path.trim()) body.path = form.path.trim();
+  if (form.ttl.trim()) body.ttl = Number(form.ttl.trim());
+  if (form.convert !== 'none') body.convert = form.convert;
+  return body;
+}
+
+function buildFileUploadData(form, file) {
+  const data = new FormData();
+  data.append('file', file);
+  if (form.path.trim()) data.append('path', form.path.trim());
+  if (form.ttl.trim()) data.append('ttl', form.ttl.trim());
+  return data;
 }
 
 export function useComposer({ notify, onCreated }) {
@@ -28,7 +53,7 @@ export function useComposer({ notify, onCreated }) {
     setBusy(true);
     try {
       const payload = file ? await submitFile() : await submitText();
-      onCreated(payload);
+      await onCreated(payload);
       reset();
     } catch (error) {
       notify('error', error.message);
@@ -38,10 +63,7 @@ export function useComposer({ notify, onCreated }) {
   }
 
   async function submitFile() {
-    const data = new FormData();
-    data.append('file', file);
-    if (form.path.trim()) data.append('path', form.path.trim());
-    if (form.ttl.trim()) data.append('ttl', form.ttl.trim());
+    const data = buildFileUploadData(form, file);
     const payload = await uploadFile(data);
     notify('success', 'Uploaded');
     return payload;
@@ -49,13 +71,18 @@ export function useComposer({ notify, onCreated }) {
 
   async function submitText() {
     if (!form.url.trim()) throw new Error('Content is required');
-    const body = { url: form.url.trim() };
-    if (form.path.trim()) body.path = form.path.trim();
-    if (form.ttl.trim()) body.ttl = Number(form.ttl.trim());
-    if (form.convert !== 'none') body.convert = form.convert;
+    const body = buildTextRequestBody(form);
     const payload = await apiRequest({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     notify('success', 'Created');
     return payload;
+  }
+
+  function updatePath(value) {
+    updateFormValue('path', normalizePathValue(value));
+  }
+
+  function updateTtl(value) {
+    updateFormValue('ttl', normalizeTtlValue(value));
   }
 
   function reset() {
@@ -84,6 +111,8 @@ export function useComposer({ notify, onCreated }) {
     reset,
     setFile,
     submit,
+    updatePath,
     updateFormValue,
+    updateTtl,
   };
 }

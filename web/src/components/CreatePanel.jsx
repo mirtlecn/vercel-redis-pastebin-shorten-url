@@ -106,16 +106,6 @@ export function CreatePanel(props) {
     setSelectedFile(event.dataTransfer.files?.[0] || null);
   }
 
-  function onPathChange(event) {
-    const normalized = event.target.value.replace(/[^a-zA-Z0-9_.\-()/]/g, '').slice(0, 99);
-    composer.updateFormValue('path', normalized);
-  }
-
-  function onTtlChange(event) {
-    const digits = event.target.value.replace(/\D/g, '');
-    composer.updateFormValue('ttl', digits);
-  }
-
   function onConvertChange(event) {
     composer.createFieldChangeHandler('convert')(event);
     requestAnimationFrame(() => {
@@ -202,7 +192,7 @@ export function CreatePanel(props) {
             <input
               className="grow"
               maxLength={99}
-              onChange={onPathChange}
+              onChange={(event) => composer.updatePath(event.target.value)}
               pattern={PATH_PATTERN}
               placeholder="custom/url/slug"
               title="1-99 chars: a-z A-Z 0-9 - _ . / ( )"
@@ -215,7 +205,7 @@ export function CreatePanel(props) {
               className="grow"
               inputMode="numeric"
               min={1}
-              onChange={onTtlChange}
+              onChange={(event) => composer.updateTtl(event.target.value)}
               pattern="[0-9]*"
               placeholder="1440"
               title="TTL in minutes, positive integer"
