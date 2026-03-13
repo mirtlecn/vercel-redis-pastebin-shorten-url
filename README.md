@@ -1,6 +1,6 @@
 ![Logo](logo.webp)
 
-[Go version](https://github.com/mirtlecn/post-go)
+[Go version API server](https://github.com/mirtlecn/post-go) | [CLI Client](https://github.com/mirtlecn/post-cli)
 
 # Post — Lightweight File, Text & URL Sharing API & Web UI
 
@@ -142,16 +142,16 @@ curl "$POST_BASE_URL" \
   -d '{"path":"mylink"}'
 ```
 
-## CLI wrap for Shell
+## CLI Client
 
-<https://github.com/mirtlecn/post-go/blob/master/post-cli>
+[CLI Client](https://github.com/mirtlecn/post-cli)
 
 ## SKILL for AI Agent
 
 <https://github.com/mirtlecn/post-go/tree/master/skills/>
 
-## License
+## Credits
 
-© Mirtle
+MIT Licence
 
-MIT License
+© Mirtle together with OpenAI Codex
