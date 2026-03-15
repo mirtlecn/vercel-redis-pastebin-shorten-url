@@ -109,6 +109,10 @@ INVALID_PATH='bad[]path'
 SLASH_PATH="$(uniq_path nested)/child.item"
 DOUBLE_SLASH_PATH="$(uniq_path two)/branch/leaf.txt"
 TRIPLE_SLASH_PATH="$(uniq_path three)/branch/deeper/leaf.txt"
+ADMIN_NORMALIZED_PATH="$(uniq_path admin-normalized)"
+ADMIN_NORMALIZED_PATH_INPUT="/$ADMIN_NORMALIZED_PATH/"
+API_NORMALIZED_PATH="$(uniq_path api-normalized)"
+API_NORMALIZED_PATH_INPUT="/$API_NORMALIZED_PATH/"
 
 CURRENT_STEP="环境可达"
 if [ "$MODE" = "vercel" ]; then
@@ -239,6 +243,23 @@ request DELETE "$BASE_URL/api/admin" "{\"path\":\"$SLASH_PATH\"}" \
 expect_status 200
 remove_created_path "$SLASH_PATH"
 log "管理斜杠路径删除通过"
+
+CURRENT_STEP="管理路径会规范化首尾斜杠"
+request POST "$BASE_URL/api/admin" "{\"path\":\"$ADMIN_NORMALIZED_PATH_INPUT\",\"url\":\"https://example.com/admin-normalized\"}" \
+  -b "$COOKIE_JAR" \
+  -H "Content-Type: application/json"
+expect_status 201
+expect_body_contains "\"path\":\"$ADMIN_NORMALIZED_PATH\""
+add_created_path "$ADMIN_NORMALIZED_PATH"
+request GET "$BASE_URL/api/admin" "" -b "$COOKIE_JAR"
+expect_status 200
+expect_body_contains "\"path\":\"$ADMIN_NORMALIZED_PATH\""
+request DELETE "$BASE_URL/api/admin" "{\"path\":\"//$ADMIN_NORMALIZED_PATH//\"}" \
+  -b "$COOKIE_JAR" \
+  -H "Content-Type: application/json"
+expect_status 200
+remove_created_path "$ADMIN_NORMALIZED_PATH"
+log "管理路径规范化通过"
 
 ADMIN_TOPIC="$(uniq_path admin-topic)"
 ADMIN_TOPIC_CHILD="child-note"
@@ -456,6 +477,28 @@ request GET "$BASE_URL" "" -H "$AUTH_HEADER"
 expect_status 200
 expect_body_not_contains "\"path\":\"$SLASH_PATH\""
 log "API 斜杠路径删除校验通过"
+
+CURRENT_STEP="API 路径会规范化首尾斜杠"
+request POST "$BASE_URL" "{\"path\":\"$API_NORMALIZED_PATH_INPUT\",\"url\":\"https://example.com/api-normalized\"}" \
+  -H "$AUTH_HEADER" \
+  -H "Content-Type: application/json"
+expect_status 201
+expect_body_contains "\"path\":\"$API_NORMALIZED_PATH\""
+add_created_path "$API_NORMALIZED_PATH"
+request GET "$BASE_URL" "{\"path\":\"//$API_NORMALIZED_PATH//\"}" \
+  -H "$AUTH_HEADER" \
+  -H "Content-Type: application/json"
+expect_status 200
+expect_body_contains "\"path\":\"$API_NORMALIZED_PATH\""
+request GET "$BASE_URL/$API_NORMALIZED_PATH/" ""
+expect_status 302
+expect_location "https://example.com/api-normalized"
+request DELETE "$BASE_URL" "{\"path\":\"//$API_NORMALIZED_PATH//\"}" \
+  -H "$AUTH_HEADER" \
+  -H "Content-Type: application/json"
+expect_status 200
+remove_created_path "$API_NORMALIZED_PATH"
+log "API 路径规范化通过"
 
 REDIRECT_PATH="$(uniq_path redirect)"
 FILE_URL_PATH="$(uniq_path file-url)"

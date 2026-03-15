@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  buildPublicLink,
   buildUploadedFilePath,
+  normalizeLinkPath,
   validateLinkPath,
 } from '../lib/utils/link-path.js';
 import {
@@ -14,6 +16,7 @@ import {
 } from '../lib/services/link-entry.js';
 
 test('validateLinkPath accepts valid values and rejects reserved prefix', () => {
+  assert.deepEqual(validateLinkPath('/'), { valid: true });
   assert.deepEqual(validateLinkPath('docs/path-1'), { valid: true });
   assert.deepEqual(validateLinkPath('admin/tools'), {
     valid: false,
@@ -21,9 +24,23 @@ test('validateLinkPath accepts valid values and rejects reserved prefix', () => 
   });
 });
 
+test('normalizeLinkPath trims edge slashes and preserves root', () => {
+  assert.equal(normalizeLinkPath('topic/'), 'topic');
+  assert.equal(normalizeLinkPath('/topic/topic/'), 'topic/topic');
+  assert.equal(normalizeLinkPath('/'), '/');
+  assert.equal(normalizeLinkPath('////'), '/');
+  assert.equal(normalizeLinkPath(''), '');
+});
+
 test('buildUploadedFilePath appends file extension only when needed', () => {
+  assert.equal(buildUploadedFilePath('/', '.png'), '/');
   assert.equal(buildUploadedFilePath('image', '.png'), 'image.png');
   assert.equal(buildUploadedFilePath('image.png', '.png'), 'image.png');
+});
+
+test('buildPublicLink keeps root without a double slash', () => {
+  assert.equal(buildPublicLink('http://example.com', '/'), 'http://example.com/');
+  assert.equal(buildPublicLink('http://example.com', 'docs'), 'http://example.com/docs');
 });
 
 test('parseTtlMinutes handles empty, valid, and invalid values', () => {

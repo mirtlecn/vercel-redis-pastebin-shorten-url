@@ -149,6 +149,16 @@ test('resolveTopicPath prefers the longest topic prefix', async () => {
   });
 });
 
+test('resolveTopicPath rejects root path when topic is provided', async () => {
+  const redis = new FakeRedis();
+  await redis.set('surl:anime', buildStoredValue({ type: 'topic', content: '<html></html>', title: 'anime' }));
+
+  await assert.rejects(
+    resolveTopicPath(redis, { topicName: 'anime', path: '/' }),
+    /`path` cannot be "\/" when `topic` is provided/,
+  );
+});
+
 test('writeTopicItem stores content, indexes member, and rebuilds topic home', async () => {
   const redis = new FakeRedis();
   await createTopic(redis, 'anime');

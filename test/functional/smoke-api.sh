@@ -148,6 +148,25 @@ expect_status 400
 expect_json_error_message "path can only contain: a-z A-Z 0-9 - _ . / ( )"
 log "路径字符校验通过"
 
+CURRENT_STEP="边缘斜杠会规范到同一个 path"
+request POST "$BASE_URL" "{\"path\":\"///\",\"url\":\"root body\",\"type\":\"text\"}" \
+  -H "Authorization: Bearer $SECRET_KEY" \
+  -H "Content-Type: application/json"
+expect_status 201
+expect_body_contains "\"path\":\"/\""
+expect_body_contains "\"surl\":\"$BASE_URL/\""
+request GET "$BASE_URL/"
+expect_status 200
+expect_body_contains "root body"
+request DELETE "$BASE_URL" "{\"path\":\"/////\"}" \
+  -H "Authorization: Bearer $SECRET_KEY" \
+  -H "Content-Type: application/json"
+expect_status 200
+expect_body_contains "\"deleted\":\"/\""
+request GET "$BASE_URL/"
+expect_status 404
+log "边缘斜杠规范化通过"
+
 CURRENT_STEP="无效 JSON body 被拒绝"
 request POST "$BASE_URL" '{"path":' \
   -H "Authorization: Bearer $SECRET_KEY" \
@@ -472,6 +491,14 @@ request POST "$BASE_URL" "{\"topic\":\"missing-$RENDER_TOPIC_PATH\",\"path\":\"x
 expect_status 400
 expect_body_contains "\"error\":\"topic does not exist\""
 log "缺失 topic 的负面路径通过"
+
+CURRENT_STEP="topic 请求不允许根路径"
+request POST "$BASE_URL" "{\"topic\":\"$RENDER_TOPIC_PATH\",\"path\":\"///\",\"url\":\"hello\",\"type\":\"text\"}" \
+  -H "Authorization: Bearer $SECRET_KEY" \
+  -H "Content-Type: application/json"
+expect_status 400
+expect_body_contains "\"error\":\"\`path\` cannot be \\\"/\\\" when \`topic\` is provided\""
+log "topic 根路径保护通过"
 
 CURRENT_STEP="topic 与 path 不匹配的负面路径"
 request POST "$BASE_URL" "{\"topic\":\"$RENDER_TOPIC_PATH\",\"path\":\"other/castle\",\"url\":\"hello\",\"type\":\"text\"}" \
