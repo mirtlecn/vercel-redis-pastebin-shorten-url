@@ -40,7 +40,7 @@ export function CreatePanel(props) {
   const CurrentConvertIcon = CONVERT_META[composer.form.convert]?.icon || icons.sparkles;
   const titleVisible = titleOpen || Boolean(composer.form.title);
   const topicPrefix = composer.selectedTopic ? `${composer.selectedTopic.path}/` : '/';
-  const pathPlaceholder = composer.selectedTopic ? 'relative/path' : 'custom/url/slug';
+  const pathPlaceholder = composer.selectedTopic ? 'relative/path (optional)' : 'custom/url/slug';
   const showTitleToggle = !globalDragging;
 
   useEffect(() => {

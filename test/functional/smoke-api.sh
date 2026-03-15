@@ -38,6 +38,7 @@ RENDER_TOPIC_PATH="render-topic-$(date +%s)-$$"
 RENDER_HTML_ITEM_PATH="$RENDER_TOPIC_PATH/howl-visual"
 RENDER_URL_ITEM_PATH="$RENDER_TOPIC_PATH/notes/reference-link"
 RENDER_TEXT_ITEM_PATH="$RENDER_TOPIC_PATH/castle-notes"
+RENDER_AUTO_ITEM_GREP='\"surl\":\"http://localhost:[0-9]+/render-topic-[^\"]+/[a-z0-9]{5}\"'
 
 READ_TEXT_PATH="read-text-$(date +%s)-$$"
 READ_URL_PATH="read-url-$(date +%s)-$$"
@@ -429,6 +430,15 @@ request POST "$BASE_URL" "{\"topic\":\"$RENDER_TOPIC_PATH\",\"path\":\"castle-no
   -H "Content-Type: application/json"
 expect_status 201
 log "创建 render topic 条目通过"
+
+CURRENT_STEP="topic 条目可省略 path 自动生成"
+request POST "$BASE_URL" "{\"topic\":\"$RENDER_TOPIC_PATH\",\"url\":\"auto path body\",\"type\":\"text\",\"title\":\"Auto Path\"}" \
+  -H "Authorization: Bearer $SECRET_KEY" \
+  -H "Content-Type: application/json"
+expect_status 201
+expect_body_contains "\"path\":\"$RENDER_TOPIC_PATH/"
+expect_body_matches "$RENDER_AUTO_ITEM_GREP"
+log "topic 条目自动生成 path 通过"
 
 CURRENT_STEP="render md2html 公开页渲染"
 request GET "$BASE_URL/$RENDER_HTML_ITEM_PATH"

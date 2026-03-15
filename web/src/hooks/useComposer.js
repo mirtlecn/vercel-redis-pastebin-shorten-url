@@ -115,9 +115,7 @@ export function useComposer({ notify, onCreated, topics = [] }) {
     () => topics.find((item) => item.path === form.topic) || null,
     [form.topic, topics],
   );
-  const requiresExplicitPath = Boolean(form.topic);
-  const hasValidPath = requiresExplicitPath ? Boolean(form.path.trim()) : true;
-  const canSubmit = Boolean(file || form.url.trim()) && hasValidPath && !busy;
+  const canSubmit = Boolean(file || form.url.trim()) && !busy;
 
   return {
     busy,
@@ -126,7 +124,6 @@ export function useComposer({ notify, onCreated, topics = [] }) {
     file,
     fileMeta,
     form,
-    requiresExplicitPath,
     selectedTopic,
     onShortcut,
     reset,
