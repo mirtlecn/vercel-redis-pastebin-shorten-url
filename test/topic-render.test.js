@@ -28,9 +28,9 @@ test('buildTopicIndexMarkdown sorts by updatedAt and writes full dates inline', 
     markdown,
     [
       '# Anime',
-      '- [Howl Visual Draft](anime/howl-visual) · 2026-12-23',
-      '- [Castle in the Sky Notes](anime/castle-notes) ☰ · 2026-12-21',
-      '- [Poster Pack Winter](anime/poster-pack-winter.zip) ◫ · 2025-10-18',
+      '- [Howl Visual Draft](/anime/howl-visual) · 2026-12-23',
+      '- [Castle in the Sky Notes](/anime/castle-notes) ☰ · 2026-12-21',
+      '- [Poster Pack Winter](/anime/poster-pack-winter.zip) ◫ · 2025-10-18',
     ].join('\n'),
   );
 });
@@ -46,10 +46,10 @@ test('buildTopicIndexMarkdown uses full path fallback and type marks', () => {
     },
   ]);
 
-  assert.match(markdown, /\[notes\/howl-visual]\(anime\/notes\/howl-visual\) ↗ · 2026-12-19/);
+  assert.match(markdown, /\[notes\/howl-visual]\(\/anime\/notes\/howl-visual\) ↗ · 2026-12-19/);
 });
 
-test('renderTopicIndexHtml uses topic title and topic-relative links', () => {
+test('renderTopicIndexHtml uses topic title and root-relative links', () => {
   const html = renderTopicIndexHtml('anime', 'Anime', [
     {
       path: 'howl-visual',
@@ -61,10 +61,10 @@ test('renderTopicIndexHtml uses topic title and topic-relative links', () => {
 
   assert.match(html, /<title>Anime<\/title>/);
   assert.match(html, /Howl Visual Draft/);
-  assert.match(html, /href="anime\/howl-visual"/);
+  assert.match(html, /href="\/anime\/howl-visual"/);
 });
 
-test('renderTopicIndexHtml keeps nested topic links relative to the topic directory', () => {
+test('renderTopicIndexHtml keeps nested topic links root-relative', () => {
   const html = renderTopicIndexHtml('blog/2026', '2026', [
     {
       path: 'post-1',
@@ -74,5 +74,5 @@ test('renderTopicIndexHtml keeps nested topic links relative to the topic direct
     },
   ]);
 
-  assert.match(html, /href="2026\/post-1"/);
+  assert.match(html, /href="\/blog\/2026\/post-1"/);
 });
