@@ -473,7 +473,7 @@ request GET "$BASE_URL/$RENDER_HTML_ITEM_PATH"
 expect_status 200
 expect_body_contains "<title>Howl Visual Draft</title>"
 expect_body_contains "href=\"/$RENDER_TOPIC_PATH\""
-expect_body_contains "<div style=\"font-size: 1.25em; font-weight: bold\">$RENDER_TOPIC_TITLE</div>"
+expect_body_contains "<div style=\"font-size: 1.3em; font-weight: bold\">$RENDER_TOPIC_TITLE</div>"
 expect_body_contains "<strong>Home</strong>"
 expect_body_contains "/  <span style=\"color: #666;\">Howl Visual Draft</span>"
 expect_body_not_contains "katex"
@@ -495,14 +495,14 @@ request POST "$BASE_URL" "{\"topic\":\"$RENDER_TOPIC_PATH\",\"path\":\"moving-ca
 expect_status 201
 request GET "$BASE_URL/$RENDER_UPDATED_HTML_ITEM_PATH"
 expect_status 200
-expect_body_contains "<div style=\"font-size: 1.25em; font-weight: bold\">$RENDER_TOPIC_UPDATED_TITLE</div>"
+expect_body_contains "<div style=\"font-size: 1.3em; font-weight: bold\">$RENDER_TOPIC_UPDATED_TITLE</div>"
 log "更新 title 后新 md2html 使用新 topic title 通过"
 
 CURRENT_STEP="旧 md2html 不追溯更新 topic title"
 request GET "$BASE_URL/$RENDER_HTML_ITEM_PATH"
 expect_status 200
-expect_body_contains "<div style=\"font-size: 1.25em; font-weight: bold\">$RENDER_TOPIC_TITLE</div>"
-expect_body_not_contains "<div style=\"font-size: 1.25em; font-weight: bold\">$RENDER_TOPIC_UPDATED_TITLE</div>"
+expect_body_contains "<div style=\"font-size: 1.3em; font-weight: bold\">$RENDER_TOPIC_TITLE</div>"
+expect_body_not_contains "<div style=\"font-size: 1.3em; font-weight: bold\">$RENDER_TOPIC_UPDATED_TITLE</div>"
 log "旧 md2html 不追溯更新 topic title 通过"
 
 CURRENT_STEP="render topic 首页渲染"
