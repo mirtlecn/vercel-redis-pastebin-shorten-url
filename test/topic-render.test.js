@@ -27,7 +27,10 @@ test('buildTopicIndexMarkdown sorts by updatedAt and writes full dates inline', 
   assert.equal(
     markdown,
     [
-      '# Anime',
+      '<div style="font-size: 1.3em; font-weight: bold">Anime</div>',
+      '\n\n',
+      '<span style="color: #666;">Home</span>',
+      '\n\n\n\n\n\n',
       '- [Howl Visual Draft](</anime/howl-visual>) · 2026-12-23',
       '- [Castle in the Sky Notes](</anime/castle-notes>) ☰ · 2026-12-21',
       '- [Poster Pack Winter](</anime/poster-pack-winter.zip>) ◫ · 2025-10-18',
@@ -46,6 +49,7 @@ test('buildTopicIndexMarkdown uses full path fallback and type marks', () => {
     },
   ]);
 
+  assert.match(markdown, /^<div style="font-size: 1.3em; font-weight: bold">Anime<\/div>/);
   assert.match(markdown, /\[notes\/howl-visual]\(<\/anime\/notes\/howl-visual>\) ↗ · 2026-12-19/);
 });
 
@@ -73,6 +77,8 @@ test('renderTopicIndexHtml uses topic title and root-relative links', () => {
   ]);
 
   assert.match(html, /<title>Anime<\/title>/);
+  assert.match(html, /<div style="font-size: 1.3em; font-weight: bold">Anime<\/div>/);
+  assert.match(html, /<span style="color: #666;">Home<\/span>/);
   assert.match(html, /Howl Visual Draft/);
   assert.match(html, /href="\/anime\/howl-visual"/);
 });
