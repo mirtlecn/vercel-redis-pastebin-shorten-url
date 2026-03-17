@@ -180,7 +180,7 @@ test('writeTopicItem stores content, indexes member, and rebuilds topic home', a
   assert.equal(await countTopicItems(redis, 'anime'), 1);
   const storedTopic = parseStoredValue(await redis.get('surl:anime'));
   assert.equal(storedTopic.type, 'topic');
-  assert.match(storedTopic.content, /href="anime\/castle"/);
+  assert.match(storedTopic.content, /href="\/anime\/castle"/);
 });
 
 test('writeTopicItem rolls back content when zadd fails', async () => {
@@ -333,7 +333,7 @@ test('deleteTopicItem rolls back when topic rebuild fails', async () => {
   assert.notEqual(await redis.get('surl:anime/castle'), null);
   assert.equal(await countTopicItems(redis, 'anime'), 1);
   const topicHome = parseStoredValue(await redis.get('surl:anime'));
-  assert.match(topicHome.content, /href="anime\/castle"/);
+  assert.match(topicHome.content, /href="\/anime\/castle"/);
 });
 
 test('deleteTopic removes only topic home and topic index', async () => {
