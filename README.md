@@ -13,6 +13,7 @@ Available at <http://localhost:3000/admin>. Password is `SECRET_KEY` or `ADMIN_K
 ## HTTP API
 
 Write operations require the header `Authorization: Bearer <SECRET_KEY>`.
+`ttl` values are optional, use minutes, and must be between `0` and `525600` (`365` days). `0` means no expiration.
 
 Suggested shell variables:
 

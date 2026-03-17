@@ -7,6 +7,8 @@ import {
   validateLinkPath,
 } from '../lib/utils/link-path.js';
 import {
+  MAX_TTL_MINUTES,
+  MAX_TTL_SECONDS,
   parseTtlMinutes,
   detectContentType,
   normalizeUrlContent,
@@ -54,6 +56,11 @@ test('parseTtlMinutes handles empty, valid, and invalid values', () => {
     ttlSeconds: 300,
     warning: null,
   });
+  assert.deepEqual(parseTtlMinutes(MAX_TTL_MINUTES), {
+    expiresIn: MAX_TTL_MINUTES,
+    ttlSeconds: MAX_TTL_SECONDS,
+    warning: null,
+  });
   assert.deepEqual(parseTtlMinutes(0), {
     expiresIn: null,
     ttlSeconds: null,
@@ -61,6 +68,10 @@ test('parseTtlMinutes handles empty, valid, and invalid values', () => {
   });
   assert.throws(() => parseTtlMinutes(1.5), /`ttl` must be a natural number/);
   assert.throws(() => parseTtlMinutes('5'), /`ttl` must be a natural number/);
+  assert.throws(
+    () => parseTtlMinutes(MAX_TTL_MINUTES + 1),
+    new RegExp(`\\\`ttl\\\` must be between 0 and ${MAX_TTL_MINUTES} minutes`),
+  );
   assert.deepEqual(parseTtlMinutes('5', { source: 'form' }), {
     expiresIn: 5,
     ttlSeconds: 300,
@@ -72,6 +83,10 @@ test('parseTtlMinutes handles empty, valid, and invalid values', () => {
     warning: null,
   });
   assert.throws(() => parseTtlMinutes('1.5', { source: 'form' }), /`ttl` must be a natural number/);
+  assert.throws(
+    () => parseTtlMinutes(String(MAX_TTL_MINUTES + 1), { source: 'form' }),
+    new RegExp(`\\\`ttl\\\` must be between 0 and ${MAX_TTL_MINUTES} minutes`),
+  );
 });
 
 test('detectContentType infers url and text', () => {

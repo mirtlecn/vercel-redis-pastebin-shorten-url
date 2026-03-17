@@ -49,6 +49,7 @@ GHOST_TOPIC_PATH="ghost-topic-$(date +%s)-$$"
 
 TTL_ZERO_PATH="ttl-zero-$(date +%s)-$$"
 TTL_LIVE_PATH="ttl-live-$(date +%s)-$$"
+TTL_MAX_PATH="ttl-max-$(date +%s)-$$"
 TTL_TOPIC_CONFLICT_PATH="ttl-topic-conflict-$(date +%s)-$$"
 TTL_TOPIC_PATH="ttl-topic-$(date +%s)-$$"
 TTL_TOPIC_ITEM_PATH="$TTL_TOPIC_PATH/entry"
@@ -72,6 +73,7 @@ cleanup() {
     "$READ_TOPIC_ITEM_PATH" \
     "$TTL_ZERO_PATH" \
     "$TTL_LIVE_PATH" \
+    "$TTL_MAX_PATH" \
     "$TTL_TOPIC_CONFLICT_PATH" \
     "$TTL_TOPIC_ITEM_PATH" \
     "$UPLOAD_PATH" \
@@ -642,6 +644,18 @@ if [ "$TTL_LIVE_REDIS" -le 0 ] || [ "$TTL_LIVE_REDIS" -gt 180 ]; then
 fi
 log "ttl 正数生效通过"
 
+CURRENT_STEP="ttl=365 天生效"
+request POST "$BASE_URL" "{\"path\":\"$TTL_MAX_PATH\",\"url\":\"hello max\",\"type\":\"text\",\"ttl\":525600}" \
+  -H "Authorization: Bearer $SECRET_KEY" \
+  -H "Content-Type: application/json"
+expect_status 201
+expect_body_contains "\"ttl\":525600"
+TTL_MAX_REDIS="$(redis-cli -n "$REDIS_DB" TTL "surl:$TTL_MAX_PATH")"
+if [ "$TTL_MAX_REDIS" -le 31449600 ] || [ "$TTL_MAX_REDIS" -gt 31536000 ]; then
+  fail "Redis TTL 不在 365 天预期范围内: $TTL_MAX_REDIS"
+fi
+log "ttl=365 天生效通过"
+
 CURRENT_STEP="ttl 非法值全部拒绝"
 request POST "$BASE_URL" "{\"path\":\"bad-ttl-decimal\",\"url\":\"hello\",\"type\":\"text\",\"ttl\":1.5}" \
   -H "Authorization: Bearer $SECRET_KEY" \
@@ -658,6 +672,11 @@ request POST "$BASE_URL" "{\"path\":\"bad-ttl-bool\",\"url\":\"hello\",\"type\":
   -H "Content-Type: application/json"
 expect_status 400
 expect_body_contains "\"error\":\"\`ttl\` must be a natural number\""
+request POST "$BASE_URL" "{\"path\":\"bad-ttl-too-large\",\"url\":\"hello\",\"type\":\"text\",\"ttl\":525601}" \
+  -H "Authorization: Bearer $SECRET_KEY" \
+  -H "Content-Type: application/json"
+expect_status 400
+expect_body_contains "\"error\":\"\`ttl\` must be between 0 and 525600 minutes\""
 log "ttl 非法值全部拒绝通过"
 
 CURRENT_STEP="topic 不支持 ttl"

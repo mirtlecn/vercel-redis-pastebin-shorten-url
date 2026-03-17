@@ -63,3 +63,12 @@ test('handleCreate rejects string ttl before touching redis', async () => {
   assert.equal(response.statusCode, 400);
   assert.match(response.body, /`ttl` must be a natural number/);
 });
+
+test('handleCreate rejects ttl larger than 365 days before touching redis', async () => {
+  const response = createResponse();
+
+  await handleCreate(createJsonRequest({ url: 'hello', type: 'text', ttl: 525601 }), response);
+
+  assert.equal(response.statusCode, 400);
+  assert.match(response.body, /`ttl` must be between 0 and 525600 minutes/);
+});
