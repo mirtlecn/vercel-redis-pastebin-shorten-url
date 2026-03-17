@@ -28,9 +28,9 @@ test('buildTopicIndexMarkdown sorts by updatedAt and writes full dates inline', 
     markdown,
     [
       '# Anime',
-      '- [Howl Visual Draft](/anime/howl-visual) · 2026-12-23',
-      '- [Castle in the Sky Notes](/anime/castle-notes) ☰ · 2026-12-21',
-      '- [Poster Pack Winter](/anime/poster-pack-winter.zip) ◫ · 2025-10-18',
+      '- [Howl Visual Draft](</anime/howl-visual>) · 2026-12-23',
+      '- [Castle in the Sky Notes](</anime/castle-notes>) ☰ · 2026-12-21',
+      '- [Poster Pack Winter](</anime/poster-pack-winter.zip>) ◫ · 2025-10-18',
     ].join('\n'),
   );
 });
@@ -46,7 +46,20 @@ test('buildTopicIndexMarkdown uses full path fallback and type marks', () => {
     },
   ]);
 
-  assert.match(markdown, /\[notes\/howl-visual]\(\/anime\/notes\/howl-visual\) ↗ · 2026-12-19/);
+  assert.match(markdown, /\[notes\/howl-visual]\(<\/anime\/notes\/howl-visual>\) ↗ · 2026-12-19/);
+});
+
+test('buildTopicIndexMarkdown wraps hrefs so parentheses in paths stay unambiguous', () => {
+  const markdown = buildTopicIndexMarkdown('anime(list)', 'anime(list)', [
+    {
+      path: 'notes/(draft)',
+      type: 'text',
+      title: 'Draft',
+      updatedAt: Date.UTC(2026, 11, 19, 10, 0, 0) / 1000,
+    },
+  ]);
+
+  assert.match(markdown, /\[Draft]\(<\/anime\(list\)\/notes\/\(draft\)>\) ☰ · 2026-12-19/);
 });
 
 test('renderTopicIndexHtml uses topic title and root-relative links', () => {
@@ -75,4 +88,17 @@ test('renderTopicIndexHtml keeps nested topic links root-relative', () => {
   ]);
 
   assert.match(html, /href="\/blog\/2026\/post-1"/);
+});
+
+test('renderTopicIndexHtml preserves paths with parentheses in generated links', () => {
+  const html = renderTopicIndexHtml('anime(list)', 'Anime', [
+    {
+      path: 'notes/(draft)',
+      type: 'text',
+      title: 'Draft',
+      updatedAt: Date.UTC(2026, 11, 23, 10, 0, 0) / 1000,
+    },
+  ]);
+
+  assert.match(html, /href="\/anime\(list\)\/notes\/\(draft\)"/);
 });
