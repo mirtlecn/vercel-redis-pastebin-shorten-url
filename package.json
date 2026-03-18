@@ -5,6 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
+    "assets:update": "node scripts/update-embedded-assets.mjs",
     "build": "vite build",
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
     "dev:api": "node server.js",

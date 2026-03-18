@@ -54,6 +54,8 @@ export function createApiHandler({
             return onList(req, res);
           }
           return onPublicGet(req, res);
+        case 'HEAD':
+          return onPublicGet(req, res);
         default:
           return errorResponse(res, { code: 'method_not_allowed', message: 'Method not allowed' }, 405);
       }

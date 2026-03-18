@@ -44,7 +44,7 @@ CREATED_TOPICS=()
 
 cleanup() {
   local path
-  for path in "${CREATED_PATHS[@]}"; do
+  for path in "${CREATED_PATHS[@]-}"; do
     /usr/bin/curl -s \
       -X DELETE \
       -H "Authorization: Bearer $SECRET_KEY" \
@@ -52,7 +52,7 @@ cleanup() {
       -d "{\"path\":\"$path\"}" \
       "$BASE_URL" >/dev/null 2>&1 || true
   done
-  for path in "${CREATED_TOPICS[@]}"; do
+  for path in "${CREATED_TOPICS[@]-}"; do
     /usr/bin/curl -s \
       -X DELETE \
       -H "Authorization: Bearer $SECRET_KEY" \

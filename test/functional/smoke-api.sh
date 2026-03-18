@@ -478,7 +478,21 @@ expect_body_contains "<strong>Home</strong>"
 expect_body_contains "/  <span style=\"color: #666;\">Howl Visual Draft</span>"
 expect_body_not_contains "katex"
 expect_body_not_contains "mathjax"
+expect_body_contains "/asset/md-base-7f7c1c5a.css"
 log "render md2html 公开页渲染通过"
+
+CURRENT_STEP="内置资源禁止直接访问"
+request GET "$BASE_URL/asset/md-base-7f7c1c5a.css"
+expect_status 403
+expect_body_contains "\"code\":\"forbidden\""
+log "内置资源禁止直接访问通过"
+
+CURRENT_STEP="内置资源允许站内请求"
+request GET "$BASE_URL/asset/md-base-7f7c1c5a.css" "" \
+  -H "Referer: $BASE_URL/$RENDER_HTML_ITEM_PATH"
+expect_status 200
+expect_body_contains ".markdown-body"
+log "内置资源允许站内请求通过"
 
 CURRENT_STEP="更新 render topic title"
 request PUT "$BASE_URL" "{\"path\":\"$RENDER_TOPIC_PATH\",\"type\":\"topic\",\"title\":\"$RENDER_TOPIC_UPDATED_TITLE\"}" \

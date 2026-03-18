@@ -61,3 +61,15 @@ test('createApiHandler routes unauthenticated get to public handler', async () =
   await handler(createMockRequest({ method: 'GET' }), createMockResponse());
   assert.deepEqual(calls, ['public']);
 });
+
+test('createApiHandler routes head requests to public handler', async () => {
+  const calls = [];
+  const handler = createApiHandler({
+    onPublicGet: async () => {
+      calls.push('public');
+    },
+  });
+
+  await handler(createMockRequest({ method: 'HEAD' }), createMockResponse());
+  assert.deepEqual(calls, ['public']);
+});

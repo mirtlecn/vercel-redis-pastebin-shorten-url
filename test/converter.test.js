@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { convertMarkdownToHtml } from '../lib/utils/converter.js';
+import { getEmbeddedAssetUrl } from '../lib/assets/index.js';
 
 test('convertMarkdownToHtml writes page title and topic backlink', () => {
   const html = convertMarkdownToHtml('# Hello', {
@@ -41,4 +42,26 @@ test('convertMarkdownToHtml keeps empty title tag when pageTitle is missing', ()
   const html = convertMarkdownToHtml('# Hello');
 
   assert.match(html, /<title><\/title>/);
+});
+
+test('convertMarkdownToHtml uses embedded base asset', () => {
+  const html = convertMarkdownToHtml('# Hello');
+
+  assert.match(html, new RegExp(getEmbeddedAssetUrl('base_css').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.doesNotMatch(html, /cdn\.jsdelivr\.net\/gh\/mirtlecn\/public\/ravel-gfm/);
+});
+
+test('convertMarkdownToHtml injects embedded highlight assets for code blocks', () => {
+  const html = convertMarkdownToHtml('```js\nconsole.log("hi")\n```');
+
+  assert.match(html, new RegExp(getEmbeddedAssetUrl('highlight_light_css').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(html, new RegExp(getEmbeddedAssetUrl('highlight_dark_css').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(html, new RegExp(getEmbeddedAssetUrl('highlight_js').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+});
+
+test('convertMarkdownToHtml injects embedded toc assets when enough headings exist', () => {
+  const html = convertMarkdownToHtml('# One\n\n## Two');
+
+  assert.match(html, new RegExp(getEmbeddedAssetUrl('gfm_addon_css').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(html, new RegExp(getEmbeddedAssetUrl('gfm_addon_js').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
 });
