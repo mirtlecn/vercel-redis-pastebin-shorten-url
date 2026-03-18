@@ -153,11 +153,12 @@ test('resolveTopicDisplayTitle prefers stored title and falls back to topic path
 test('createTopic writes topic home, fallback title, and placeholder member', async () => {
   const redis = new FakeRedis();
 
-  await createTopic(redis, 'anime');
+  await createTopic(redis, 'anime', { requestReceivedAt: new Date('2026-03-19T10:00:01Z') });
 
   const storedTopic = parseStoredValue(await redis.get('surl:anime'));
   assert.equal(storedTopic.type, 'topic');
   assert.equal(storedTopic.title, '');
+  assert.equal(storedTopic.created, '2026-03-19T10:00:01Z');
   assert.equal(await getTopicDisplayTitle(redis, 'anime'), 'Anime');
   assert.deepEqual(redis.sortedSets.get(getTopicItemsKey('anime')), [
     { value: TOPIC_PLACEHOLDER_MEMBER, score: 0 },
@@ -332,6 +333,41 @@ test('rebuildTopicIndex removes stale members', async () => {
   assert.deepEqual(members, [TOPIC_PLACEHOLDER_MEMBER, 'alive']);
 });
 
+test('rebuildTopicIndex sorts by created before zset score and falls back for invalid values', async () => {
+  const redis = new FakeRedis();
+  await createTopic(redis, 'anime');
+  await redis.zAdd(getTopicItemsKey('anime'), [
+    { score: 300, value: 'score-wins-only-on-fallback' },
+    { score: 100, value: 'older-created' },
+    { score: 50, value: 'newer-created' },
+  ]);
+  await redis.set(
+    'surl:anime/score-wins-only-on-fallback',
+    buildStoredValue({ type: 'text', content: 'fallback', title: 'Fallback', created: 'bad-value' }),
+  );
+  await redis.set(
+    'surl:anime/older-created',
+    buildStoredValue({ type: 'text', content: 'older', title: 'Older', created: '2026-03-19T10:00:00Z' }),
+  );
+  await redis.set(
+    'surl:anime/newer-created',
+    buildStoredValue({ type: 'text', content: 'newer', title: 'Newer', created: '2026-03-19T12:00:00Z' }),
+  );
+
+  await rebuildTopicIndex(redis, 'anime');
+
+  const topicHome = parseStoredValue(await redis.get('surl:anime'));
+  const newerIndex = topicHome.content.indexOf('/anime/newer-created');
+  const olderIndex = topicHome.content.indexOf('/anime/older-created');
+  const fallbackIndex = topicHome.content.indexOf('/anime/score-wins-only-on-fallback');
+
+  assert.notEqual(newerIndex, -1);
+  assert.notEqual(olderIndex, -1);
+  assert.notEqual(fallbackIndex, -1);
+  assert.ok(newerIndex < olderIndex);
+  assert.ok(olderIndex < fallbackIndex);
+});
+
 test('adoptTopicItems indexes existing non-topic entries under the topic path', async () => {
   const redis = new FakeRedis();
   await redis.set('surl:anime/alpha', buildStoredValue({ type: 'text', content: 'a', title: 'Alpha' }));
@@ -435,7 +471,7 @@ test('deleteTopicItem rolls back when topic rebuild fails', async () => {
 
 test('deleteTopic removes only topic home and topic index', async () => {
   const redis = new FakeRedis();
-  await createTopic(redis, 'anime');
+  await createTopic(redis, 'anime', { created: '2026-03-19T10:00:01Z', createdProvided: true });
   await writeTopicItem({
     redis,
     topicName: 'anime',
@@ -452,6 +488,7 @@ test('deleteTopic removes only topic home and topic index', async () => {
   assert.deepEqual(deletedTopic, {
     type: 'topic',
     title: '',
+    created: '2026-03-19T10:00:01Z',
     content: '1',
   });
   assert.equal(await redis.get('surl:anime'), null);

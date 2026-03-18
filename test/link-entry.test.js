@@ -206,6 +206,7 @@ test('buildCreatedEntryPayload uses ttl field and includes overwritten preview',
     type: 'text',
     content: 'hello world',
     title: 'Greeting',
+    created: '2026-03-19T10:00:01Z',
     isExport: false,
     expiresIn: 5,
     overwrittenStoredValue: '{"type":"text","content":"old value","title":"Old"}',
@@ -217,8 +218,26 @@ test('buildCreatedEntryPayload uses ttl field and includes overwritten preview',
     path: 'note',
     type: 'text',
     title: 'Greeting',
+    created: '2026-03-19T10:00:01Z',
     content: 'hello world',
     ttl: 5,
     overwritten: 'old value',
   });
+});
+
+test('buildCreatedEntryPayload returns illegal when stored created is missing', () => {
+  const payload = buildCreatedEntryPayload({
+    req: { headers: { host: 'example.com' } },
+    path: 'note',
+    type: 'text',
+    content: 'hello world',
+    title: 'Greeting',
+    created: '',
+    isExport: false,
+    expiresIn: null,
+    overwrittenStoredValue: null,
+    ttlWarning: null,
+  });
+
+  assert.equal(payload.created, 'illegal');
 });

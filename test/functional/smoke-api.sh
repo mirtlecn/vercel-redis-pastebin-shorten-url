@@ -49,6 +49,12 @@ READ_HTML_PATH="read-html-$(date +%s)-$$"
 READ_TOPIC_PATH="read-topic-$(date +%s)-$$"
 READ_TOPIC_ITEM_PATH="$READ_TOPIC_PATH/entry"
 GHOST_TOPIC_PATH="ghost-topic-$(date +%s)-$$"
+ILLEGAL_CREATED_PATH="illegal-created-$(date +%s)-$$"
+
+CREATED_SORT_TOPIC_PATH="created-sort-topic-$(date +%s)-$$"
+CREATED_SORT_OLD_PATH="$CREATED_SORT_TOPIC_PATH/old"
+CREATED_SORT_NEW_PATH="$CREATED_SORT_TOPIC_PATH/new"
+CREATED_SORT_FALLBACK_PATH="$CREATED_SORT_TOPIC_PATH/fallback"
 
 TTL_ZERO_PATH="ttl-zero-$(date +%s)-$$"
 TTL_LIVE_PATH="ttl-live-$(date +%s)-$$"
@@ -75,6 +81,10 @@ cleanup() {
     "$READ_URL_PATH" \
     "$READ_HTML_PATH" \
     "$READ_TOPIC_ITEM_PATH" \
+    "$ILLEGAL_CREATED_PATH" \
+    "$CREATED_SORT_OLD_PATH" \
+    "$CREATED_SORT_NEW_PATH" \
+    "$CREATED_SORT_FALLBACK_PATH" \
     "$TTL_ZERO_PATH" \
     "$TTL_LIVE_PATH" \
     "$TTL_MAX_PATH" \
@@ -96,6 +106,7 @@ cleanup() {
     "$STORAGE_TOPIC_PATH" \
     "$RENDER_TOPIC_PATH" \
     "$READ_TOPIC_PATH" \
+    "$CREATED_SORT_TOPIC_PATH" \
     "$TTL_TOPIC_PATH"
   do
     /usr/bin/curl -s \
@@ -108,6 +119,7 @@ cleanup() {
 
   redis-cli -n "$REDIS_DB" DEL \
     "surl:$GHOST_TOPIC_PATH" \
+    "surl:$ILLEGAL_CREATED_PATH" \
     "$STORAGE_TOPIC_ITEMS_KEY" >/dev/null 2>&1 || true
   cleanup_http_test
 }
@@ -332,6 +344,7 @@ request DELETE "$BASE_URL" "{\"path\":\"$CONTRACT_TOPIC_PATH\",\"type\":\"topic\
   -H "Content-Type: application/json"
 expect_status 200
 expect_body_contains "\"deleted\":\"$CONTRACT_TOPIC_PATH\""
+expect_body_matches "\"created\":\"[^\"]+Z\""
 expect_body_contains "\"content\":\"1\""
 log "删除 topic 返回当前 count 通过"
 
@@ -392,6 +405,7 @@ request DELETE "$BASE_URL" "{\"path\":\"$STORAGE_ENTRY_PATH\"}" \
   -H "Authorization: Bearer $SECRET_KEY" \
   -H "Content-Type: application/json"
 expect_status 200
+expect_body_matches "\"created\":\"[^\"]+Z\""
 ENTRY_EXISTS="$(redis-cli -n "$REDIS_DB" EXISTS "surl:$STORAGE_ENTRY_PATH")"
 TOPIC_REDIS_MEMBERS="$(redis-cli -n "$REDIS_DB" ZRANGE "$STORAGE_TOPIC_ITEMS_KEY" 0 -1)"
 TOPIC_REDIS_VALUE="$(redis-cli -n "$REDIS_DB" GET "surl:$STORAGE_TOPIC_PATH")"
@@ -408,6 +422,7 @@ request DELETE "$BASE_URL" "{\"path\":\"$STORAGE_TOPIC_PATH\",\"type\":\"topic\"
   -H "Authorization: Bearer $SECRET_KEY" \
   -H "Content-Type: application/json"
 expect_status 200
+expect_body_matches "\"created\":\"[^\"]+Z\""
 TOPIC_EXISTS="$(redis-cli -n "$REDIS_DB" EXISTS "surl:$STORAGE_TOPIC_PATH")"
 TOPIC_ITEMS_EXISTS="$(redis-cli -n "$REDIS_DB" EXISTS "$STORAGE_TOPIC_ITEMS_KEY")"
 ORPHAN_EXISTS="$(redis-cli -n "$REDIS_DB" EXISTS "surl:$STORAGE_ORPHAN_PATH")"
@@ -538,6 +553,41 @@ expect_body_contains " · $CURRENT_DATE"
 expect_body_not_contains "  · "
 log "render topic 首页渲染通过"
 
+CURRENT_STEP="topic 首页优先按 created 排序并在非法值时回退 score"
+request POST "$BASE_URL" "{\"path\":\"$CREATED_SORT_TOPIC_PATH\",\"type\":\"topic\"}" \
+  -H "Authorization: Bearer $SECRET_KEY" \
+  -H "Content-Type: application/json"
+expect_status 201
+request POST "$BASE_URL" "{\"topic\":\"$CREATED_SORT_TOPIC_PATH\",\"path\":\"old\",\"url\":\"old body\",\"type\":\"text\",\"title\":\"Old\",\"created\":\"2026-03-18\"}" \
+  -H "Authorization: Bearer $SECRET_KEY" \
+  -H "Content-Type: application/json"
+expect_status 201
+request POST "$BASE_URL" "{\"topic\":\"$CREATED_SORT_TOPIC_PATH\",\"path\":\"new\",\"url\":\"new body\",\"type\":\"text\",\"title\":\"New\",\"created\":\"2026-03-21\"}" \
+  -H "Authorization: Bearer $SECRET_KEY" \
+  -H "Content-Type: application/json"
+expect_status 201
+request POST "$BASE_URL" "{\"topic\":\"$CREATED_SORT_TOPIC_PATH\",\"path\":\"fallback\",\"url\":\"fallback body\",\"type\":\"text\",\"title\":\"Fallback\"}" \
+  -H "Authorization: Bearer $SECRET_KEY" \
+  -H "Content-Type: application/json"
+expect_status 201
+redis-cli -n "$REDIS_DB" SET "surl:$CREATED_SORT_FALLBACK_PATH" '{"type":"text","content":"fallback body","title":"Fallback","created":"bad-value"}' >/dev/null
+request PUT "$BASE_URL" "{\"path\":\"$CREATED_SORT_TOPIC_PATH\",\"type\":\"topic\"}" \
+  -H "Authorization: Bearer $SECRET_KEY" \
+  -H "Content-Type: application/json"
+expect_status 200
+request GET "$BASE_URL/$CREATED_SORT_TOPIC_PATH"
+expect_status 200
+NEW_OFFSET="$(printf '%s' "$LAST_BODY" | /usr/bin/grep -b -o '/'"$CREATED_SORT_NEW_PATH"'"' | /usr/bin/head -n 1 | /usr/bin/cut -d: -f1)"
+FALLBACK_OFFSET="$(printf '%s' "$LAST_BODY" | /usr/bin/grep -b -o '/'"$CREATED_SORT_FALLBACK_PATH"'"' | /usr/bin/head -n 1 | /usr/bin/cut -d: -f1)"
+OLD_OFFSET="$(printf '%s' "$LAST_BODY" | /usr/bin/grep -b -o '/'"$CREATED_SORT_OLD_PATH"'"' | /usr/bin/head -n 1 | /usr/bin/cut -d: -f1)"
+if [ -z "$NEW_OFFSET" ] || [ -z "$FALLBACK_OFFSET" ] || [ -z "$OLD_OFFSET" ]; then
+  fail "topic created 排序检查缺少目标链接"
+fi
+if [ "$NEW_OFFSET" -ge "$FALLBACK_OFFSET" ] || [ "$FALLBACK_OFFSET" -ge "$OLD_OFFSET" ]; then
+  fail "topic created 排序不符合预期"
+fi
+log "topic 首页 created 排序通过"
+
 CURRENT_STEP="缺失 topic 的负面路径"
 request POST "$BASE_URL" "{\"topic\":\"missing-$RENDER_TOPIC_PATH\",\"path\":\"x\",\"url\":\"hello\",\"type\":\"text\"}" \
   -H "Authorization: Bearer $SECRET_KEY" \
@@ -564,11 +614,12 @@ log "topic 与 path 不匹配的负面路径通过"
 
 # Read contract
 CURRENT_STEP="创建 read contract 资源"
-request POST "$BASE_URL" "{\"path\":\"$READ_TEXT_PATH\",\"url\":\"hello\",\"type\":\"text\",\"title\":\"Greeting\",\"ttl\":5}" \
+request POST "$BASE_URL" "{\"path\":\"$READ_TEXT_PATH\",\"url\":\"hello\",\"type\":\"text\",\"title\":\"Greeting\",\"ttl\":5,\"created\":\"2026-03-19\"}" \
   -H "Authorization: Bearer $SECRET_KEY" \
   -H "Content-Type: application/json"
 expect_status 201
 expect_body_not_contains "expires_in"
+expect_body_contains "\"created\":\"2026-03-18T16:00:00Z\""
 request POST "$BASE_URL" "{\"path\":\"$READ_URL_PATH\",\"url\":\"https://example.com/redirect\",\"type\":\"url\",\"title\":\"Ref\"}" \
   -H "Authorization: Bearer $SECRET_KEY" \
   -H "Content-Type: application/json"
@@ -577,14 +628,16 @@ request POST "$BASE_URL" "{\"path\":\"$READ_HTML_PATH\",\"url\":\"<h1>Hello Html
   -H "Authorization: Bearer $SECRET_KEY" \
   -H "Content-Type: application/json"
 expect_status 201
-request POST "$BASE_URL" "{\"path\":\"$READ_TOPIC_PATH\",\"type\":\"topic\"}" \
+request POST "$BASE_URL" "{\"path\":\"$READ_TOPIC_PATH\",\"type\":\"topic\",\"created\":\"2026-03-20\"}" \
   -H "Authorization: Bearer $SECRET_KEY" \
   -H "Content-Type: application/json"
 expect_status 201
-request POST "$BASE_URL" "{\"topic\":\"$READ_TOPIC_PATH\",\"path\":\"entry\",\"url\":\"# Topic Entry\\n\\nBody\",\"type\":\"md2html\",\"title\":\"Topic Entry\"}" \
+expect_body_contains "\"created\":\"2026-03-19T16:00:00Z\""
+request POST "$BASE_URL" "{\"topic\":\"$READ_TOPIC_PATH\",\"path\":\"entry\",\"url\":\"# Topic Entry\\n\\nBody\",\"type\":\"md2html\",\"title\":\"Topic Entry\",\"created\":\"2026-03-20 08:09:10\"}" \
   -H "Authorization: Bearer $SECRET_KEY" \
   -H "Content-Type: application/json"
 expect_status 201
+expect_body_contains "\"created\":\"2026-03-20T00:09:10Z\""
 log "创建 read contract 资源通过"
 
 CURRENT_STEP="GET body 单条 lookup"
@@ -593,6 +646,7 @@ request GET "$BASE_URL" "{\"path\":\"$READ_TEXT_PATH\"}" \
   -H "Content-Type: application/json"
 expect_status 200
 expect_body_contains "\"title\":\"Greeting\""
+expect_body_contains "\"created\":\"2026-03-18T16:00:00Z\""
 expect_body_matches "\"ttl\":(4|5)"
 expect_body_contains "\"content\":\"hello\""
 log "GET body 单条 lookup 通过"
@@ -602,6 +656,7 @@ request PUT "$BASE_URL" "{\"path\":\"$READ_TEXT_PATH\",\"url\":\"hello updated b
   -H "Authorization: Bearer $SECRET_KEY" \
   -H "Content-Type: application/json"
 expect_status 200
+expect_body_contains "\"created\":\"2026-03-18T16:00:00Z\""
 expect_body_contains "\"ttl\":null"
 expect_body_contains "\"overwritten\":\"hello\""
 expect_body_not_contains "expires_in"
@@ -613,6 +668,7 @@ request GET "$BASE_URL" "{\"path\":\"$READ_TOPIC_PATH\",\"type\":\"topic\"}" \
   -H "Content-Type: application/json"
 expect_status 200
 expect_body_contains "\"type\":\"topic\""
+expect_body_contains "\"created\":\"2026-03-19T16:00:00Z\""
 expect_body_contains "\"ttl\":null"
 expect_body_contains "\"content\":\"1\""
 log "GET body topic lookup 通过"
@@ -634,8 +690,30 @@ request GET "$BASE_URL" "{}" \
 expect_status 200
 expect_body_contains "\"path\":\"$READ_TEXT_PATH\""
 expect_body_contains "\"path\":\"$READ_TOPIC_PATH\""
+expect_body_contains "\"created\":\"2026-03-18T16:00:00Z\""
+expect_body_contains "\"created\":\"2026-03-19T16:00:00Z\""
 expect_body_contains "\"content\":\"1\""
 log "GET body 全量列表通过"
+
+CURRENT_STEP="旧数据非法 created 读取返回 illegal"
+redis-cli -n "$REDIS_DB" SET "surl:$ILLEGAL_CREATED_PATH" '{"type":"text","content":"legacy body","title":"Legacy","created":"bad-value"}' >/dev/null
+request GET "$BASE_URL" "{\"path\":\"$ILLEGAL_CREATED_PATH\"}" \
+  -H "Authorization: Bearer $SECRET_KEY" \
+  -H "Content-Type: application/json"
+expect_status 200
+expect_body_contains "\"created\":\"illegal\""
+request GET "$BASE_URL" "{}" \
+  -H "Authorization: Bearer $SECRET_KEY" \
+  -H "Content-Type: application/json"
+expect_status 200
+expect_body_contains "\"path\":\"$ILLEGAL_CREATED_PATH\""
+expect_body_contains "\"created\":\"illegal\""
+request DELETE "$BASE_URL" "{\"path\":\"$ILLEGAL_CREATED_PATH\"}" \
+  -H "Authorization: Bearer $SECRET_KEY" \
+  -H "Content-Type: application/json"
+expect_status 200
+expect_body_contains "\"created\":\"illegal\""
+log "旧数据非法 created 读取与删除返回 illegal 通过"
 
 CURRENT_STEP="公开读取 read contract 资源"
 request GET "$BASE_URL/$READ_TEXT_PATH"

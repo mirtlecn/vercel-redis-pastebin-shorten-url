@@ -14,6 +14,7 @@ Available at <http://localhost:3000/admin>. Password is `SECRET_KEY` or `ADMIN_K
 
 Write operations require the header `Authorization: Bearer <SECRET_KEY>`.
 `ttl` values are optional, use minutes, and must be between `0` and `525600` (`365` days). `0` means no expiration.
+Write requests may include an optional `created` string. Accepted input formats are `RFC3339`, `RFC3339Nano`, `YYYY-MM-DD HH:MM:SS`, and date-only `YYYY-MM-DD`, `YYYY.MM.DD`, `YYYY/MM/DD`. Values without a timezone are parsed as `Asia/Shanghai`, then stored and returned as UTC `RFC3339`.
 `type: "topic"` accepts an optional `title`. Topic displays use that `title` when present, otherwise they fall back to the topic path.
 
 Suggested shell variables:

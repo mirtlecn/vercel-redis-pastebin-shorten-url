@@ -72,3 +72,12 @@ test('handleCreate rejects ttl larger than 365 days before touching redis', asyn
   assert.equal(response.statusCode, 400);
   assert.match(response.body, /`ttl` must be between 0 and 525600 minutes/);
 });
+
+test('handleCreate rejects invalid created before touching redis', async () => {
+  const response = createResponse();
+
+  await handleCreate(createJsonRequest({ url: 'hello', type: 'text', created: '2026-02-30' }), response);
+
+  assert.equal(response.statusCode, 400);
+  assert.match(response.body, /`created` must be a valid/);
+});
