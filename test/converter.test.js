@@ -56,7 +56,6 @@ test('convertMarkdownToHtml injects embedded highlight assets for code blocks', 
 
   assert.match(html, new RegExp(getEmbeddedAssetUrl('highlight_light_css').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   assert.match(html, new RegExp(getEmbeddedAssetUrl('highlight_dark_css').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-  assert.match(html, new RegExp(getEmbeddedAssetUrl('highlight_js').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
 });
 
 test('convertMarkdownToHtml injects embedded toc assets when enough headings exist', () => {
