@@ -1,6 +1,6 @@
 {
   "name": "post",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "A lightweight link shortener, pastebin and file sharing service",
   "main": "index.js",
   "type": "module",
