@@ -16,9 +16,9 @@ init_http_test
 LONG_PATH="$(printf 'a%.0s' $(seq 1 100))"
 INVALID_PATH='bad[]path'
 LONG_BODY='0123456789abcdefghi full export body'
-CURRENT_YEAR="$(date -u +%Y)"
-CURRENT_MM_DD="$(date -u +%m-%d)"
-CURRENT_DATE="$(date -u +%F)"
+CURRENT_YEAR="$(TZ=Asia/Shanghai date +%Y)"
+CURRENT_MM_DD="$(TZ=Asia/Shanghai date +%m-%d)"
+CURRENT_DATE="$(TZ=Asia/Shanghai date +%F)"
 UPLOAD_PATH="upload-file-$(date +%s)-$$"
 UPLOAD_FILE_PATH="${UPLOAD_PATH}.md"
 UPLOAD_OCTET_TXT_PATH="upload-octet-text-$(date +%s)-$$"
