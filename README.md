@@ -7,6 +7,7 @@
 ## Web UI
 
 Available at <http://localhost:3000/admin>. Password is `SECRET_KEY` or `ADMIN_KEY` if set.
+The composer supports optional meta fields for `title` and `created`. `created` can be submitted as date-only or date with time.
 
 ![Web UI Screenshot](gui.webp)
 

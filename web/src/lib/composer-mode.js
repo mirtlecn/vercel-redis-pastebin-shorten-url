@@ -2,9 +2,11 @@ export const TOPIC_CREATE_TYPE = 'topic';
 const TOPIC_LABEL_MAX_CHARS = 16;
 
 const PATH_SANITIZE_PATTERN = /[^a-zA-Z0-9_.\-()/]/g;
+const CREATED_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const CREATED_TIME_PATTERN = /^\d{2}:\d{2}$/;
 
 export function buildInitialForm(topic = '') {
-  return { convert: 'none', path: '', title: '', topic, ttl: '', url: '' };
+  return { convert: 'none', path: '', title: '', createdDate: '', createdTime: '', topic, ttl: '', url: '' };
 }
 
 export function isTopicCreateType(convert) {
@@ -35,6 +37,8 @@ export function buildTopicModeForm() {
     convert: TOPIC_CREATE_TYPE,
     path: '',
     title: '',
+    createdDate: '',
+    createdTime: '',
     topic: '',
     ttl: '',
     url: '',
@@ -47,25 +51,42 @@ export function buildRestoredForm(snapshot, fallbackTopic = '') {
     convert: snapshot.convert || 'none',
     path: snapshot.path || '',
     title: snapshot.title || '',
+    createdDate: snapshot.createdDate || '',
+    createdTime: snapshot.createdTime || '',
     topic: snapshot.topic ?? fallbackTopic,
     ttl: snapshot.ttl || '',
     url: snapshot.url || '',
   };
 }
 
+export function buildCreatedValue({ createdDate = '', createdTime = '' }) {
+  const normalizedDate = createdDate.trim();
+  const normalizedTime = createdTime.trim();
+
+  if (!CREATED_DATE_PATTERN.test(normalizedDate)) return null;
+  if (!normalizedTime) return normalizedDate;
+  if (!CREATED_TIME_PATTERN.test(normalizedTime)) return normalizedDate;
+
+  return `${normalizedDate} ${normalizedTime}:00`;
+}
+
 export function buildTextRequestBody(form) {
+  const created = buildCreatedValue(form);
+
   if (isTopicCreateType(form.convert)) {
     const body = {
       path: normalizeTopicNameValue(form.url.trim()),
       type: TOPIC_CREATE_TYPE,
     };
     if (form.title.trim()) body.title = form.title.trim();
+    if (created) body.created = created;
     return body;
   }
 
   const body = { url: form.url.trim() };
   if (form.path.trim()) body.path = form.path.trim();
   if (form.title.trim()) body.title = form.title.trim();
+  if (created) body.created = created;
   if (form.topic) body.topic = form.topic;
   if (form.ttl.trim()) body.ttl = Number(form.ttl.trim());
   if (form.convert !== 'none') body.convert = form.convert;
@@ -77,6 +98,8 @@ export function buildFileUploadData(form, file) {
   data.append('file', file);
   if (form.path.trim()) data.append('path', form.path.trim());
   if (form.title.trim()) data.append('title', form.title.trim());
+  const created = buildCreatedValue(form);
+  if (created) data.append('created', created);
   if (form.topic) data.append('topic', form.topic);
   if (form.ttl.trim()) data.append('ttl', form.ttl.trim());
   return data;
@@ -94,16 +117,17 @@ export function getComposerUiState({
   form,
   selectedTopic = null,
   globalDragging = false,
-  titleOpen = false,
+  metaOpen = false,
 }) {
   const topicMode = isTopicCreateType(form.convert);
   const ttlValue = form.ttl.trim();
+  const hasCreated = Boolean(buildCreatedValue(form));
   return {
     editorPlaceholder: topicMode ? 'Input a valid topic name' : '',
     pathInputVisible: !topicMode,
     pathPlaceholder: selectedTopic ? 'relative/path' : 'custom/url/slug',
-    showTitleToggle: !globalDragging,
-    titleVisible: titleOpen || Boolean(form.title),
+    showMetaToggle: !globalDragging,
+    metaVisible: metaOpen || Boolean(form.title) || hasCreated,
     topicPrefix: topicMode ? '/' : (selectedTopic ? `${selectedTopic.path}/` : '/'),
     ttlDisabled: topicMode,
     ttlPlaceholder: 'never expires',

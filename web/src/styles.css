@@ -93,30 +93,39 @@ body, #root { margin: 0; min-height: 100vh; }
 .composer-shell-global-drag { border-color: color-mix(in oklab, var(--color-info) 58%, transparent); background: color-mix(in oklab, var(--color-base-100) 80%, var(--color-info) 20%); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-info) 22%, transparent), 0 0 0 6px color-mix(in oklab, var(--color-info) 12%, transparent); }
 .composer-shell-dragging { border-color: var(--color-info); background: color-mix(in oklab, var(--color-info) 12%, transparent); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-info) 18%, transparent); }
 .composer-editor { position: relative; min-height: 16rem; }
-.composer-editor-with-title { padding-top: 3.5rem; }
-.composer-title-row { position: absolute; top: var(--composer-title-top); right: .82rem; z-index: 3; display: flex; align-items: center; justify-content: flex-end; gap: .5rem; }
-.composer-title-row-open { top: var(--composer-content-x); left: var(--composer-content-x); right: var(--composer-content-x); justify-content: stretch; }
-.composer-title-row-open::after { content: ""; position: absolute; left: 0; bottom: -.4rem; width: min(18rem, 40%); height: 1px; background: color-mix(in oklab, var(--color-base-content) 14%, transparent); }
-.composer-title-row-hidden { opacity: 0; pointer-events: none; }
-.composer-title-label { flex: 0 0 auto; color: color-mix(in oklab, var(--color-base-content) 58%, transparent); font-size: clamp(1rem, 1.3vw, 1.15rem); font-weight: 600; line-height: 1.7; }
-.composer-title-inline-input { flex: 1 1 auto; height: 2rem; min-height: 2rem; padding: 0 .15rem !important; background: transparent; border-radius: 0; box-shadow: none; font-size: clamp(1rem, 1.3vw, 1.15rem); line-height: 1.7; }
-.composer-title-inline-input:focus { background: transparent; }
-.composer-title-tooltip { position: absolute; top: var(--composer-title-top); right: .82rem; z-index: 4; }
-.composer-title-icon { min-height: .95rem; width: .95rem; min-width: .95rem; padding: 0; border-radius: .5rem; background: transparent; color: color-mix(in oklab, var(--color-base-content) 42%, transparent); box-shadow: none; }
-.composer-title-icon:hover, .composer-title-icon:focus-visible { color: color-mix(in oklab, var(--color-base-content) 80%, transparent); background: transparent; }
-.composer-title-icon-open { color: color-mix(in oklab, var(--color-base-content) 52%, transparent); }
-.composer-title-icon-open:hover, .composer-title-icon-open:focus-visible { color: color-mix(in oklab, var(--color-base-content) 88%, transparent); }
+.composer-editor-with-meta { padding-top: 5.1rem; }
+.composer-meta-row { position: absolute; top: var(--composer-title-top); right: .82rem; z-index: 3; display: flex; align-items: center; justify-content: flex-end; gap: .5rem; }
+.composer-meta-row-open { top: var(--composer-content-x); left: var(--composer-content-x); right: var(--composer-content-x); align-items: flex-start; justify-content: space-between; gap: 1.25rem; }
+.composer-meta-row-open::after { content: ""; position: absolute; left: 0; right: 0; bottom: -.5rem; height: 1px; background: linear-gradient(90deg, color-mix(in oklab, var(--color-base-content) 16%, transparent), color-mix(in oklab, var(--color-base-content) 6%, transparent)); }
+.composer-meta-row-hidden { opacity: 0; pointer-events: none; }
+.composer-meta-field { display: flex; align-items: center; gap: .55rem; min-width: 0; }
+.composer-meta-field-title { flex: 1 1 auto; }
+.composer-meta-field-created { flex: 0 0 auto; min-width: min(24rem, 42%); justify-content: flex-end; }
+.composer-meta-label { flex: 0 0 auto; color: color-mix(in oklab, var(--color-base-content) 58%, transparent); font-size: clamp(1rem, 1.3vw, 1.15rem); font-weight: 600; line-height: 1.7; }
+.composer-meta-inline-input { flex: 1 1 auto; height: 2rem; min-height: 2rem; min-width: 0; padding: 0 .15rem !important; background: transparent; border-radius: 0; box-shadow: none; font-size: clamp(1rem, 1.3vw, 1.15rem); line-height: 1.7; }
+.composer-meta-inline-input:focus { background: transparent; }
+.composer-created-inputs { display: inline-flex; align-items: center; justify-content: flex-end; gap: .45rem; min-width: 18rem; }
+.composer-created-input { height: 2rem; min-height: 2rem; padding: 0 .1rem !important; border-radius: 0; background: transparent; box-shadow: none; color: color-mix(in oklab, var(--color-base-content) 88%, transparent); font-size: .95rem; line-height: 1.6; }
+.composer-created-input:focus { background: transparent; }
+.composer-created-input:disabled { color: color-mix(in oklab, var(--color-base-content) 34%, transparent); }
+.composer-created-date { width: 9.5rem; }
+.composer-created-time { width: 6.5rem; }
+.composer-meta-tooltip { position: absolute; top: var(--composer-title-top); right: .82rem; z-index: 4; }
+.composer-meta-icon { min-height: .95rem; width: .95rem; min-width: .95rem; padding: 0; border-radius: .5rem; background: transparent; color: color-mix(in oklab, var(--color-base-content) 42%, transparent); box-shadow: none; }
+.composer-meta-icon:hover, .composer-meta-icon:focus-visible { color: color-mix(in oklab, var(--color-base-content) 80%, transparent); background: transparent; }
+.composer-meta-icon-open { color: color-mix(in oklab, var(--color-base-content) 52%, transparent); }
+.composer-meta-icon-open:hover, .composer-meta-icon-open:focus-visible { color: color-mix(in oklab, var(--color-base-content) 88%, transparent); }
 .composer-drop-overlay { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: .65rem; border-radius: 1.2rem; background: color-mix(in oklab, var(--color-base-100) 86%, transparent); color: color-mix(in oklab, var(--color-base-content) 80%, transparent); pointer-events: none; text-align: center; }
 .composer-drop-overlay-ready { background: color-mix(in oklab, var(--color-base-100) 72%, var(--color-info) 28%); color: color-mix(in oklab, var(--color-info-content) 40%, var(--color-info)); }
 .composer-drop-title { font-size: 1.2rem; font-weight: 700; letter-spacing: .01em; }
 .composer-drop-subtitle { font-size: .92rem; color: color-mix(in oklab, var(--color-base-content) 62%, transparent); }
 .composer-textarea { width: 100%; height: 100%; min-height: 16rem; max-height: 34rem; resize: vertical; padding: .75rem !important; font-size: clamp(1rem, 1.3vw, 1.15rem); line-height: 1.7; background: transparent; outline: none; scrollbar-width: thin; scrollbar-color: color-mix(in oklab, var(--color-info) 60%, transparent) color-mix(in oklab, var(--color-base-content) 7%, transparent); }
-.composer-textarea-with-title { padding-top: .1rem !important; }
-.composer-textarea-with-title-icon { padding-right: .75rem !important; }
+.composer-textarea-with-meta { padding-top: .1rem !important; }
+.composer-textarea-with-meta-icon { padding-right: .75rem !important; }
 .composer-textarea-hidden { color: transparent; caret-color: transparent; }
 .composer-textarea-hidden::placeholder { color: transparent; }
 .composer-hint { position: absolute; left: .75rem; top: .75rem; display: inline-flex; align-items: baseline; gap: .15rem; color: color-mix(in oklab, var(--color-base-content) 48%, transparent); font-size: clamp(1rem, 1.3vw, 1.15rem); line-height: 1.7; pointer-events: none; }
-.composer-hint-shifted { top: 3.55rem; }
+.composer-hint-shifted { top: 5.15rem; }
 .composer-hint:not(.composer-hint-shifted) { max-width: calc(100% - 3rem); }
 .composer-hint-upload { pointer-events: auto; color: color-mix(in oklab, var(--color-info) 72%, var(--color-base-content) 28%); text-decoration: none; background: none; border: 0; padding: 0; font: inherit; cursor: pointer; }
 .composer-hint-upload:hover { color: var(--color-info); text-decoration: underline; text-underline-offset: 2px; }
@@ -125,7 +134,7 @@ body, #root { margin: 0; min-height: 100vh; }
 .composer-textarea::-webkit-scrollbar-thumb { background: linear-gradient(180deg, color-mix(in oklab, var(--color-info) 80%, transparent), color-mix(in oklab, var(--color-warning) 80%, transparent)); border: 2px solid color-mix(in oklab, var(--color-base-100) 85%, transparent); border-radius: 999px; }
 .composer-textarea::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, color-mix(in oklab, var(--color-info) 92%, transparent), color-mix(in oklab, var(--color-warning) 92%, transparent)); }
 .composer-file-stage { display: grid; min-height: 16rem; place-items: center; padding: 1.75rem var(--composer-content-x) .75rem; overflow: visible; }
-.composer-file-stage-with-title { padding-top: 4.5rem; }
+.composer-file-stage-with-meta { padding-top: 6rem; }
 .file-card { position: relative; display: flex; width: min(100%, 32rem); align-items: stretch; justify-content: center; border-radius: 1.2rem; background: transparent; padding: 1.4rem 0 1.1rem; overflow: visible; }
 .file-card-content { display: flex; max-width: 100%; min-width: 0; align-items: center; gap: .85rem; }
 .file-card-icon-button { position: relative; display: grid; flex: 0 0 auto; place-items: center; width: 3rem; height: 3rem; padding: 0; border: 0; border-radius: 1rem; background: color-mix(in oklab, var(--color-info) 10%, var(--color-base-100) 90%); color: color-mix(in oklab, var(--color-info) 82%, var(--color-base-content) 18%); cursor: pointer; transition: background-color .18s ease, color .18s ease; }
@@ -147,4 +156,4 @@ body, #root { margin: 0; min-height: 100vh; }
 @keyframes shake-soft { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-3px); } }
 @keyframes drift { 0%,100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(0,-16px,0) scale(1.04); } }
 @media (min-width: 1024px) { .toolbar-grid { grid-template-columns: 1.35fr 1fr 1fr 10rem; } .field-action { min-width: 10rem; } }
-@media (max-width: 768px) { .login-card { min-height: auto; } .login-grid { min-height: auto; padding: 2rem; } .login-subtitle { display: none; } .login-corner-meta { position: static; padding: 0 2rem 1.2rem; } .composer-shell { min-height: 15rem; --composer-content-x: 1.35rem; } .composer-editor { min-height: 13rem; } .composer-editor-with-title { padding-top: 3.3rem; } .composer-hint-shifted { top: 3.35rem; } .composer-file-stage { min-height: 13rem; padding-left: var(--composer-content-x); padding-right: var(--composer-content-x); } .composer-file-stage-with-title { padding-top: 4.1rem; } .file-card { width: 100%; } .file-card-name { max-width: 11rem; } .toolbar-grid { grid-template-columns: 1fr; } .field-action, .select-shell, .field-shell-fixed { width: 100%; } .path-prefix-shell { max-width: 55%; } .composer-title-label { font-size: .88rem; } .toast.toast-top.toast-end { inset: auto 0 1rem 0; align-items: center; } }
+@media (max-width: 768px) { .login-card { min-height: auto; } .login-grid { min-height: auto; padding: 2rem; } .login-subtitle { display: none; } .login-corner-meta { position: static; padding: 0 2rem 1.2rem; } .composer-shell { min-height: 15rem; --composer-content-x: 1.35rem; } .composer-editor { min-height: 13rem; } .composer-editor-with-meta { padding-top: 6.6rem; } .composer-meta-row-open { flex-direction: column; gap: .35rem; } .composer-meta-field { width: 100%; } .composer-meta-field-title, .composer-meta-field-created { min-width: 0; justify-content: flex-start; } .composer-created-inputs { min-width: 0; width: 100%; justify-content: flex-start; } .composer-created-date { width: min(100%, 10rem); } .composer-created-time { width: min(100%, 7rem); } .composer-hint-shifted { top: 6.55rem; } .composer-file-stage { min-height: 13rem; padding-left: var(--composer-content-x); padding-right: var(--composer-content-x); } .composer-file-stage-with-meta { padding-top: 7.1rem; } .file-card { width: 100%; } .file-card-name { max-width: 11rem; } .toolbar-grid { grid-template-columns: 1fr; } .field-action, .select-shell, .field-shell-fixed { width: 100%; } .path-prefix-shell { max-width: 55%; } .composer-meta-label { font-size: .88rem; } .toast.toast-top.toast-end { inset: auto 0 1rem 0; align-items: center; } }

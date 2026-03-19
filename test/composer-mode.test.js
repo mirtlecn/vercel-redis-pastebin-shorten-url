@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   TOPIC_CREATE_TYPE,
+  buildCreatedValue,
+  buildFileUploadData,
   buildInitialForm,
   buildTopicModeForm,
   buildRestoredForm,
@@ -27,6 +29,8 @@ test('buildTextRequestBody emits topic mutation payload for topic mode', () => {
     ...buildInitialForm('nested/topic'),
     convert: TOPIC_CREATE_TYPE,
     title: 'Anime Archive',
+    createdDate: '2026-03-20',
+    createdTime: '08:09',
     ttl: '1440',
     topic: 'nested/topic',
     path: 'ignored/path',
@@ -37,6 +41,7 @@ test('buildTextRequestBody emits topic mutation payload for topic mode', () => {
     path: 'anime/castle',
     type: TOPIC_CREATE_TYPE,
     title: 'Anime Archive',
+    created: '2026-03-20 08:09:00',
   });
 });
 
@@ -46,6 +51,8 @@ test('buildTextRequestBody keeps regular composer payload fields outside topic m
     convert: 'qrcode',
     path: 'castle',
     title: 'Castle',
+    createdDate: '2026-03-20',
+    createdTime: '',
     topic: 'anime',
     ttl: '60',
     url: 'hello',
@@ -55,6 +62,7 @@ test('buildTextRequestBody keeps regular composer payload fields outside topic m
     url: 'hello',
     path: 'castle',
     title: 'Castle',
+    created: '2026-03-20',
     topic: 'anime',
     ttl: 60,
     convert: 'qrcode',
@@ -66,6 +74,8 @@ test('buildTopicModeForm clears all fields and forces topic type', () => {
     convert: TOPIC_CREATE_TYPE,
     path: '',
     title: '',
+    createdDate: '',
+    createdTime: '',
     topic: '',
     ttl: '',
     url: '',
@@ -74,8 +84,8 @@ test('buildTopicModeForm clears all fields and forces topic type', () => {
 
 test('buildRestoredForm falls back to defaults for empty snapshot fields', () => {
   assert.deepEqual(
-    buildRestoredForm({ convert: '', path: '', title: '', topic: '', ttl: '', url: '' }, 'selected/topic'),
-    { convert: 'none', path: '', title: '', topic: '', ttl: '', url: '' },
+    buildRestoredForm({ convert: '', path: '', title: '', createdDate: '', createdTime: '', topic: '', ttl: '', url: '' }, 'selected/topic'),
+    { convert: 'none', path: '', title: '', createdDate: '', createdTime: '', topic: '', ttl: '', url: '' },
   );
 });
 
@@ -85,6 +95,8 @@ test('buildRestoredForm rebuilds a saved composer snapshot', () => {
       convert: 'md2html',
       path: 'castle',
       title: 'Castle',
+      createdDate: '2026-03-20',
+      createdTime: '08:09',
       topic: 'anime',
       ttl: '30',
       url: '# heading',
@@ -93,6 +105,8 @@ test('buildRestoredForm rebuilds a saved composer snapshot', () => {
       convert: 'md2html',
       path: 'castle',
       title: 'Castle',
+      createdDate: '2026-03-20',
+      createdTime: '08:09',
       topic: 'anime',
       ttl: '30',
       url: '# heading',
@@ -140,14 +154,14 @@ test('getComposerUiState exposes topic mode UI constraints', () => {
       form: { ...buildInitialForm('anime'), convert: TOPIC_CREATE_TYPE, title: 'Hidden title' },
       selectedTopic: { path: 'anime' },
       globalDragging: false,
-      titleOpen: true,
+      metaOpen: true,
     }),
     {
       editorPlaceholder: 'Input a valid topic name',
       pathInputVisible: false,
       pathPlaceholder: 'relative/path',
-      showTitleToggle: true,
-      titleVisible: true,
+      showMetaToggle: true,
+      metaVisible: true,
       topicPrefix: '/',
       ttlDisabled: true,
       ttlPlaceholder: 'never expires',
@@ -162,19 +176,31 @@ test('getComposerUiState keeps normal editor affordances outside topic mode', ()
       form: { ...buildInitialForm(''), convert: 'none', title: 'Shown title' },
       selectedTopic: null,
       globalDragging: false,
-      titleOpen: false,
+      metaOpen: false,
     }),
     {
       editorPlaceholder: '',
       pathInputVisible: true,
       pathPlaceholder: 'custom/url/slug',
-      showTitleToggle: true,
-      titleVisible: true,
+      showMetaToggle: true,
+      metaVisible: true,
       topicPrefix: '/',
       ttlDisabled: false,
       ttlPlaceholder: 'never expires',
       ttlSuffixVisible: false,
     },
+  );
+});
+
+test('getComposerUiState keeps meta visible when created is already filled', () => {
+  assert.equal(
+    getComposerUiState({
+      form: { ...buildInitialForm(''), convert: 'none', createdDate: '2026-03-20' },
+      selectedTopic: null,
+      globalDragging: false,
+      metaOpen: false,
+    }).metaVisible,
+    true,
   );
 });
 
@@ -184,8 +210,8 @@ test('getComposerUiState still allows the title row to stay hidden after topic a
       form: { ...buildInitialForm('anime'), convert: 'none', title: '' },
       selectedTopic: { path: 'anime' },
       globalDragging: false,
-      titleOpen: false,
-    }).titleVisible,
+      metaOpen: false,
+    }).metaVisible,
     false,
   );
 });
@@ -196,8 +222,36 @@ test('getComposerUiState shows ttl suffix only when a numeric ttl is present', (
       form: { ...buildInitialForm(''), convert: 'none', ttl: '30' },
       selectedTopic: null,
       globalDragging: false,
-      titleOpen: false,
+      metaOpen: false,
     }).ttlSuffixVisible,
     true,
   );
+});
+
+test('buildCreatedValue returns null when no date is provided', () => {
+  assert.equal(buildCreatedValue({ createdDate: '', createdTime: '08:09' }), null);
+});
+
+test('buildCreatedValue returns a date when time is omitted', () => {
+  assert.equal(buildCreatedValue({ createdDate: '2026-03-20', createdTime: '' }), '2026-03-20');
+});
+
+test('buildCreatedValue appends seconds when date and time are both provided', () => {
+  assert.equal(buildCreatedValue({ createdDate: '2026-03-20', createdTime: '08:09' }), '2026-03-20 08:09:00');
+});
+
+test('buildFileUploadData only appends created when a date exists', () => {
+  const withCreated = buildFileUploadData({
+    ...buildInitialForm('anime'),
+    createdDate: '2026-03-20',
+    createdTime: '08:09',
+  }, new File(['demo'], 'demo.txt', { type: 'text/plain' }));
+  const withoutCreated = buildFileUploadData({
+    ...buildInitialForm('anime'),
+    createdDate: '',
+    createdTime: '08:09',
+  }, new File(['demo'], 'demo.txt', { type: 'text/plain' }));
+
+  assert.equal(withCreated.get('created'), '2026-03-20 08:09:00');
+  assert.equal(withoutCreated.get('created'), null);
 });

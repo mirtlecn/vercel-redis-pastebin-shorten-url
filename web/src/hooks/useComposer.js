@@ -83,6 +83,15 @@ export function useComposer({ notify, onCreated, selectedTopicPath = '', topics 
     updateFormValue('title', value.slice(0, 120));
   }
 
+  function updateCreatedDate(value) {
+    updateFormValue('createdDate', value.slice(0, 10));
+    if (!value) updateFormValue('createdTime', '');
+  }
+
+  function updateCreatedTime(value) {
+    updateFormValue('createdTime', value.slice(0, 5));
+  }
+
   function updateUrl(value) {
     updateFormValue('url', isTopicCreateType(form.convert) ? normalizeTopicNameValue(value) : value);
   }
@@ -148,6 +157,8 @@ export function useComposer({ notify, onCreated, selectedTopicPath = '', topics 
     updateTopic,
     updateUrl,
     updateFormValue,
+    updateCreatedDate,
+    updateCreatedTime,
     updateTtl,
   };
 }

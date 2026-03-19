@@ -32,7 +32,7 @@ export function CreatePanel(props) {
   const [dragging, setDragging] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [topicOpen, setTopicOpen] = useState(false);
-  const [titleOpen, setTitleOpen] = useState(false);
+  const [metaOpen, setMetaOpen] = useState(() => Boolean(props.initialMetaOpen));
   const [ttlFocused, setTtlFocused] = useState(false);
   const [topicModeSnapshot, setTopicModeSnapshot] = useState(null);
   const globalDragDepthRef = useRef(0);
@@ -62,14 +62,14 @@ export function CreatePanel(props) {
     form: composer.form,
     selectedTopic: composer.selectedTopic,
     globalDragging,
-    titleOpen,
+    metaOpen,
   });
   const {
     editorPlaceholder,
     pathInputVisible,
     pathPlaceholder,
-    showTitleToggle,
-    titleVisible,
+    showMetaToggle,
+    metaVisible,
     topicPrefix,
     ttlDisabled,
     ttlPlaceholder,
@@ -137,8 +137,8 @@ export function CreatePanel(props) {
       return;
     }
 
-    if (composer.form.title || composer.form.topic) setTitleOpen(true);
-  }, [composer.form.title, composer.form.topic, composer.isTopicMode]);
+    if (composer.form.title || composer.form.createdDate || composer.form.topic) setMetaOpen(true);
+  }, [composer.form.title, composer.form.createdDate, composer.form.topic, composer.isTopicMode]);
 
   useEffect(() => {
     if (!ttlDisabled) return;
@@ -240,7 +240,7 @@ export function CreatePanel(props) {
   function restoreAfterTopicMode(nextConvert = null) {
     const snapshot = topicModeSnapshot;
     composer.restoreForm(snapshot);
-    setTitleOpen(snapshot?.titleOpen ?? false);
+    setMetaOpen(snapshot?.metaOpen ?? false);
     setTopicModeSnapshot(null);
     if (nextConvert) composer.updateFormValue('convert', nextConvert);
   }
@@ -252,11 +252,11 @@ export function CreatePanel(props) {
       if (!composer.isTopicMode) {
         setTopicModeSnapshot({
           ...composer.form,
-          titleOpen,
+          metaOpen,
         });
       }
       composer.enterTopicMode();
-      setTitleOpen(true);
+      setMetaOpen(true);
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
@@ -273,7 +273,7 @@ export function CreatePanel(props) {
     if (composer.isTopicMode) return;
 
     const nextTopicPath = event.target.value;
-    if (nextTopicPath) setTitleOpen(true);
+    if (nextTopicPath) setMetaOpen(true);
     composer.updateTopic(nextTopicPath);
     props.onTopicChange?.(nextTopicPath);
     requestAnimationFrame(() => {
@@ -291,7 +291,7 @@ export function CreatePanel(props) {
 
     if (!didSubmit || !submittedInTopicMode) return;
 
-    setTitleOpen(topicModeSnapshot?.titleOpen ?? false);
+    setMetaOpen(topicModeSnapshot?.metaOpen ?? false);
     setTopicModeSnapshot(null);
   }
 
@@ -319,40 +319,62 @@ export function CreatePanel(props) {
           }}
           onDrop={onDrop}
         >
-          <div className={`composer-title-row ${titleVisible ? 'composer-title-row-open' : ''} ${showTitleToggle ? '' : 'composer-title-row-hidden'}`}>
-            {titleVisible ? (
+          <div className={`composer-meta-row ${metaVisible ? 'composer-meta-row-open' : ''} ${showMetaToggle ? '' : 'composer-meta-row-hidden'}`}>
+            {metaVisible ? (
               <>
-                <span className="composer-title-label">Title:</span>
-                <input
-                  className="input input-ghost composer-title-inline-input"
-                  maxLength={120}
-                  onChange={(event) => composer.updateTitle(event.target.value)}
-                  placeholder=""
-                  value={composer.form.title}
-                />
+                <div className="composer-meta-field composer-meta-field-title">
+                  <span className="composer-meta-label">Title:</span>
+                  <input
+                    className="input input-ghost composer-meta-inline-input"
+                    maxLength={120}
+                    onChange={(event) => composer.updateTitle(event.target.value)}
+                    placeholder=""
+                    value={composer.form.title}
+                  />
+                </div>
+                <div className="composer-meta-field composer-meta-field-created">
+                  <span className="composer-meta-label">Created:</span>
+                  <div className="composer-created-inputs">
+                    <input
+                      className="input input-ghost composer-created-input composer-created-date"
+                      onChange={(event) => composer.updateCreatedDate(event.target.value)}
+                      type="date"
+                      value={composer.form.createdDate}
+                    />
+                    <input
+                      className="input input-ghost composer-created-input composer-created-time"
+                      disabled={!composer.form.createdDate}
+                      onChange={(event) => composer.updateCreatedTime(event.target.value)}
+                      step={60}
+                      type="time"
+                      value={composer.form.createdTime}
+                    />
+                  </div>
+                </div>
               </>
             ) : null}
           </div>
-          {showTitleToggle ? (
-            <div className="tooltip tooltip-left tooltip-layer composer-title-tooltip" data-tip={titleVisible ? 'Hide' : 'Add a title'}>
+          {showMetaToggle ? (
+            <div className="tooltip tooltip-left tooltip-layer composer-meta-tooltip" data-tip={metaVisible ? 'Hide' : 'Add meta info'}>
               <button
-                className={`btn btn-ghost btn-xs composer-title-icon ${titleVisible ? 'composer-title-icon-open' : ''}`}
+                className={`btn btn-ghost btn-xs composer-meta-icon ${metaVisible ? 'composer-meta-icon-open' : ''}`}
                 onClick={() => {
-                  if (titleVisible) {
+                  if (metaVisible) {
                     composer.updateTitle('');
-                    setTitleOpen(false);
+                    composer.updateCreatedDate('');
+                    setMetaOpen(false);
                     return;
                   }
-                  setTitleOpen(true);
+                  setMetaOpen(true);
                 }}
                 type="button"
               >
-                {titleVisible ? <TitleCollapseIcon className="size-[0.95rem]" strokeWidth={1.9} /> : <TitleIcon className="size-[0.95rem]" strokeWidth={1.9} />}
+                {metaVisible ? <TitleCollapseIcon className="size-[0.95rem]" strokeWidth={1.9} /> : <TitleIcon className="size-[0.95rem]" strokeWidth={1.9} />}
               </button>
             </div>
           ) : null}
           {composer.fileMeta ? (
-            <div className={`composer-file-stage ${titleVisible ? 'composer-file-stage-with-title' : ''}`}>
+            <div className={`composer-file-stage ${metaVisible ? 'composer-file-stage-with-meta' : ''}`}>
               <div className="file-card">
                 <div className="file-card-content">
                   <div className="tooltip tooltip-top tooltip-layer" data-tip="Remove">
@@ -372,10 +394,10 @@ export function CreatePanel(props) {
               </div>
             </div>
           ) : (
-            <div className={`composer-editor ${titleVisible ? 'composer-editor-with-title' : ''}`}>
+            <div className={`composer-editor ${metaVisible ? 'composer-editor-with-meta' : ''}`}>
               <textarea
                 ref={textareaRef}
-                className={`textarea textarea-ghost composer-textarea ${titleVisible ? 'composer-textarea-with-title' : 'composer-textarea-with-title-icon'} ${globalDragging ? 'composer-textarea-hidden' : ''}`}
+                className={`textarea textarea-ghost composer-textarea ${metaVisible ? 'composer-textarea-with-meta' : 'composer-textarea-with-meta-icon'} ${globalDragging ? 'composer-textarea-hidden' : ''}`}
                 onChange={(event) => composer.updateUrl(event.target.value)}
                 onKeyDown={composer.onShortcut}
                 onPaste={onPaste}
@@ -383,7 +405,7 @@ export function CreatePanel(props) {
                 value={composer.form.url}
               />
               {!composer.isTopicMode && !composer.form.url.trim() && !globalDragging && (
-                <div className={`composer-hint ${titleVisible ? 'composer-hint-shifted' : ''}`}>
+                <div className={`composer-hint ${metaVisible ? 'composer-hint-shifted' : ''}`}>
                   <span>Input texts or </span>
                   <button className="composer-hint-upload" onClick={openPicker} type="button">
                     upload a file

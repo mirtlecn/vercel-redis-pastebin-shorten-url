@@ -30,6 +30,13 @@ export function ResultPanel({ onCopy, result }) {
           <IconButton icon={icons.open} onClick={() => window.open(result.surl, '_blank', 'noreferrer')} title="Open" />
         </div>
       </div>
+      {result.created ? (
+        <div className="mt-3 text-sm text-base-content/65">
+          <span className="font-medium text-base-content/78">Created</span>
+          <span className="mx-2 text-base-content/35">/</span>
+          <span>{result.created}</span>
+        </div>
+      ) : null}
     </section>
   );
 }

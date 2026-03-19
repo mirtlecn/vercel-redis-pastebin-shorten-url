@@ -102,9 +102,10 @@ export function ListPanel({ items, onCopy, onDelete, page, setPage }) {
         <table className="table table-zebra table-fixed w-full">
           <thead>
             <tr>
-              <th className="w-[14rem]">Path</th>
+              <th className="w-[12rem]">Path</th>
               <th className="w-[8rem]">Type</th>
               <th className="w-[8rem]">TTL</th>
+              <th className="w-[14rem]">Created</th>
               <th>Preview</th>
               <th className="w-[14rem] text-right">Actions</th>
             </tr>
@@ -112,7 +113,7 @@ export function ListPanel({ items, onCopy, onDelete, page, setPage }) {
           <tbody>
             {rows.map((item) => (
               <tr key={item.path}>
-                <td className="w-[14rem] max-w-[14rem]">
+                <td className="w-[12rem] max-w-[12rem]">
                   <span className="block truncate font-medium" title={item.path}>{item.path}</span>
                   {item.title ? (
                     <span className="mt-1 block truncate text-xs text-base-content/55" title={item.title}>
@@ -125,6 +126,9 @@ export function ListPanel({ items, onCopy, onDelete, page, setPage }) {
                 </td>
                 <td className="w-[8rem] max-w-[8rem] whitespace-nowrap text-base-content/65">
                   <span className="block truncate" title={item.ttlText}>{item.ttlText}</span>
+                </td>
+                <td className="w-[14rem] max-w-[14rem] whitespace-nowrap text-sm text-base-content/65">
+                  <span className="block truncate" title={item.created || ''}>{item.created || ''}</span>
                 </td>
                 <td className="max-w-md truncate" title={item.content}>{item.content}</td>
                 <td className="overflow-visible">
