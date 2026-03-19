@@ -1,0 +1,13 @@
+.git
+.DS_Store
+.vercel
+node_modules
+public
+dist
+tmp
+*.log
+.env
+.env.local
+.env.development.local
+.env.production.local
+plan
