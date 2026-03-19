@@ -113,6 +113,10 @@ ADMIN_NORMALIZED_PATH="$(uniq_path admin-normalized)"
 ADMIN_NORMALIZED_PATH_INPUT="/$ADMIN_NORMALIZED_PATH/"
 API_NORMALIZED_PATH="$(uniq_path api-normalized)"
 API_NORMALIZED_PATH_INPUT="/$API_NORMALIZED_PATH/"
+CREATED_DATE_INPUT="2026-03-20"
+CREATED_DATE_EXPECTED="2026-03-19T16:00:00Z"
+CREATED_DATETIME_INPUT="2026-03-20 08:09:10"
+CREATED_DATETIME_EXPECTED="2026-03-20T00:09:10Z"
 
 CURRENT_STEP="环境可达"
 if [ "$MODE" = "vercel" ]; then
@@ -296,25 +300,25 @@ expect_body_matches "\"path\":\"$ADMIN_TTL_LIVE_PATH\"[^\n]*\"ttl\":(2[0-9]|30)"
 log "管理 ttl 正数通过"
 
 CURRENT_STEP="管理 title 与 topic 创建"
-request POST "$BASE_URL" "{\"path\":\"$ADMIN_TOPIC\",\"type\":\"topic\",\"title\":\"Admin Topic Home\"}" \
+request POST "$BASE_URL" "{\"path\":\"$ADMIN_TOPIC\",\"type\":\"topic\",\"title\":\"Admin Topic Home\",\"created\":\"$CREATED_DATE_INPUT\"}" \
   -H "$AUTH_HEADER" \
   -H "Content-Type: application/json"
 expect_status 201
 expect_body_contains "\"title\":\"Admin Topic Home\""
+expect_body_contains "\"created\":\"$CREATED_DATE_EXPECTED\""
 add_created_topic "$ADMIN_TOPIC"
-request POST "$BASE_URL/api/admin" "{\"topic\":\"$ADMIN_TOPIC\",\"path\":\"$ADMIN_TOPIC_CHILD\",\"title\":\"Admin Topic Title\",\"url\":\"topic body\"}" \
+request POST "$BASE_URL/api/admin" "{\"topic\":\"$ADMIN_TOPIC\",\"path\":\"$ADMIN_TOPIC_CHILD\",\"title\":\"Admin Topic Title\",\"url\":\"topic body\",\"created\":\"$CREATED_DATETIME_INPUT\"}" \
   -b "$COOKIE_JAR" \
   -H "Content-Type: application/json"
 expect_status 201
 expect_body_contains "\"path\":\"$ADMIN_TOPIC_PATH\""
 expect_body_contains "\"title\":\"Admin Topic Title\""
+expect_body_contains "\"created\":\"$CREATED_DATETIME_EXPECTED\""
 add_created_path "$ADMIN_TOPIC_PATH"
 request GET "$BASE_URL/api/admin" "" -b "$COOKIE_JAR"
 expect_status 200
-expect_body_contains "\"path\":\"$ADMIN_TOPIC_PATH\""
-expect_body_contains "\"title\":\"Admin Topic Title\""
-expect_body_contains "\"path\":\"$ADMIN_TOPIC\""
-expect_body_contains "\"title\":\"Admin Topic Home\""
+expect_body_matches "\"path\":\"$ADMIN_TOPIC_PATH\"[^\n]*\"title\":\"Admin Topic Title\"[^\n]*\"created\":\"$CREATED_DATETIME_EXPECTED\""
+expect_body_matches "\"path\":\"$ADMIN_TOPIC\"[^\n]*\"title\":\"Admin Topic Home\"[^\n]*\"created\":\"$CREATED_DATE_EXPECTED\""
 log "管理 title 与 topic 通过"
 
 CURRENT_STEP="管理 topic 子项删除"
@@ -339,19 +343,35 @@ log "API 未鉴权校验通过"
 API_PATH="$(uniq_path api)"
 
 CURRENT_STEP="API 创建"
-request POST "$BASE_URL" "{\"path\":\"$API_PATH\",\"url\":\"https://example.com/api\"}" \
+request POST "$BASE_URL" "{\"path\":\"$API_PATH\",\"url\":\"https://example.com/api\",\"created\":\"$CREATED_DATE_INPUT\"}" \
   -H "$AUTH_HEADER" \
   -H "Content-Type: application/json"
 expect_status 201
 expect_body_contains "\"path\":\"$API_PATH\""
+expect_body_contains "\"created\":\"$CREATED_DATE_EXPECTED\""
 add_created_path "$API_PATH"
 log "API 创建通过"
 
 CURRENT_STEP="API 列表"
 request GET "$BASE_URL" "" -H "$AUTH_HEADER"
 expect_status 200
-expect_body_contains "\"path\":\"$API_PATH\""
+expect_body_matches "\"path\":\"$API_PATH\"[^\n]*\"created\":\"$CREATED_DATE_EXPECTED\""
 log "API 列表通过"
+
+CURRENT_STEP="API 更新保留 created"
+request PUT "$BASE_URL" "{\"path\":\"$API_PATH\",\"url\":\"https://example.com/api-updated\"}" \
+  -H "$AUTH_HEADER" \
+  -H "Content-Type: application/json"
+expect_status 200
+expect_body_contains "\"path\":\"$API_PATH\""
+expect_body_contains "\"created\":\"$CREATED_DATE_EXPECTED\""
+request GET "$BASE_URL" "{\"path\":\"$API_PATH\"}" \
+  -H "$AUTH_HEADER" \
+  -H "Content-Type: application/json"
+expect_status 200
+expect_body_contains "\"path\":\"$API_PATH\""
+expect_body_contains "\"created\":\"$CREATED_DATE_EXPECTED\""
+log "API 更新保留 created 通过"
 
 CURRENT_STEP="API 删除"
 request DELETE "$BASE_URL" "{\"path\":\"$API_PATH\"}" \

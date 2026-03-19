@@ -53,6 +53,21 @@ Prerequisites:
 # Install dependencies
 npm install
 
+# Run the default test suite: unit + local web smoke
+npm test
+
+# Run all local test suites, including the API smoke suite
+npm run test:all
+
+# Run only unit tests
+npm run test:unit
+
+# Run only the local admin/web smoke suite
+npm run test:smoke:web:local
+
+# Run only the local API smoke suite
+npm run test:smoke:api:local
+
 # Configure environment variables
 cp .env.example .env.local
 
@@ -75,6 +90,14 @@ Env:
   - `redis://...` only for non-TLS Redis
 - If you see socket-closed errors when using `redis://`, switch to `rediss://`
 - Optional: `MAX_CONTENT_SIZE_KB` (default 500), `MAX_FILE_SIZE_MB` (default 10), `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET_NAME`, `S3_REGION`
+
+## Testing
+
+- `npm test`: default CI-like local check. Runs unit tests and the local admin/web smoke suite.
+- `npm run test:all`: runs unit tests, the local admin/web smoke suite, and the local API smoke suite.
+- `npm run test:smoke:web:local`: starts the local app with a dedicated Redis DB and exercises `/admin`, `/api/admin`, and the main JSON API with shell assertions.
+- `npm run test:smoke:api:local`: starts the local app with a dedicated Redis DB and runs the API-focused smoke suite in [test/functional/smoke-api.sh](test/functional/smoke-api.sh).
+- `npm run test:smoke:web:vercel`: reserved for environments where `vercel dev` is available. It is not part of the default test chain.
 
 ## Credits
 
