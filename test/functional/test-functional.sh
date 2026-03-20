@@ -695,6 +695,17 @@ expect_status 200
 expect_header_contains '^content-type: text/html'
 expect_body_contains "href=\"/$TOPIC_RENDER_PATH\""
 expect_body_contains '<strong>Home</strong>'
+request DELETE "$BASE_URL" "{\"path\":\"$TOPIC_RENDER_PATH\",\"type\":\"topic\"}" \
+  -H "$AUTH_HEADER" \
+  -H "Content-Type: application/json"
+expect_status 200
+remove_created_topic "$TOPIC_RENDER_PATH"
+request GET "$BASE_URL/$TOPIC_MD_PATH" ""
+expect_status 200
+expect_header_contains '^content-type: text/html'
+expect_body_not_contains "href=\"/$TOPIC_RENDER_PATH\""
+expect_body_not_contains '<strong>Home</strong>'
+expect_body_not_contains 'Render Topic'
 log "topic 子项渲染通过"
 
 log "全部功能测试通过"
