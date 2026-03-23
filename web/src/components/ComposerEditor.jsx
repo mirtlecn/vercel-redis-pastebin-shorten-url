@@ -8,6 +8,7 @@ export function ComposerEditor({
   fileMeta,
   globalDragging,
   isTopicMode,
+  metaFields,
   metaVisible,
   onClearSelectedFile,
   onContentChange,
@@ -33,6 +34,7 @@ export function ComposerEditor({
       onDragOver={onDragOver}
       onDrop={onDrop}
     >
+      {metaFields}
       {fileMeta ? (
         <div className={`composer-file-stage ${metaVisible ? 'composer-file-stage-with-meta' : ''}`}>
           <div className="file-card">

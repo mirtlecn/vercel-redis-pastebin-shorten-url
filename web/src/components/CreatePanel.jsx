@@ -118,43 +118,43 @@ export function CreatePanel(props) {
     <section className="panel-box composer-panel">
       <div className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-base-content/55">New</div>
       <form className="grid gap-3 animate-fade-up" onSubmit={onSubmit}>
-        <div>
-          <ComposerMetaFields
-            createdDateRef={createdDateRef}
-            createdDateValue={composer.form.createdDate}
-            createdTimeRef={createdTimeRef}
-            createdTimeValue={composer.form.createdTime}
-            metaVisible={metaVisible}
-            onCreatedDateChange={composer.updateCreatedDate}
-            onCreatedTimeChange={composer.updateCreatedTime}
-            onOpenCreatedPicker={openCreatedPicker}
-            onTitleChange={composer.updateTitle}
-            onToggleMeta={() => setMetaOpen((value) => !value)}
-            showMetaToggle={showMetaToggle}
-            titleValue={composer.form.title}
-          />
-          <ComposerEditor
-            contentValue={composer.form.content}
-            dragging={dragAndPaste.dragging}
-            editorPlaceholder={editorPlaceholder}
-            fileInputRef={dragAndPaste.fileInputRef}
-            fileMeta={composer.fileMeta}
-            globalDragging={dragAndPaste.globalDragging}
-            isTopicMode={composer.isTopicMode}
-            metaVisible={metaVisible}
-            onClearSelectedFile={clearSelectedFile}
-            onContentChange={composer.updateContent}
-            onDragEnter={dragAndPaste.onDragEnter}
-            onDragLeave={dragAndPaste.onDragLeave}
-            onDragOver={dragAndPaste.onDragOver}
-            onDrop={dragAndPaste.onDrop}
-            onFileInputChange={dragAndPaste.onFileInputChange}
-            onOpenPicker={dragAndPaste.openPicker}
-            onPaste={dragAndPaste.onPaste}
-            onShortcut={composer.onShortcut}
-            textareaRef={dragAndPaste.textareaRef}
-          />
-        </div>
+        <ComposerEditor
+          contentValue={composer.form.content}
+          dragging={dragAndPaste.dragging}
+          editorPlaceholder={editorPlaceholder}
+          fileInputRef={dragAndPaste.fileInputRef}
+          fileMeta={composer.fileMeta}
+          globalDragging={dragAndPaste.globalDragging}
+          isTopicMode={composer.isTopicMode}
+          metaFields={(
+            <ComposerMetaFields
+              createdDateRef={createdDateRef}
+              createdDateValue={composer.form.createdDate}
+              createdTimeRef={createdTimeRef}
+              createdTimeValue={composer.form.createdTime}
+              metaVisible={metaVisible}
+              onCreatedDateChange={composer.updateCreatedDate}
+              onCreatedTimeChange={composer.updateCreatedTime}
+              onOpenCreatedPicker={openCreatedPicker}
+              onTitleChange={composer.updateTitle}
+              onToggleMeta={() => setMetaOpen((value) => !value)}
+              showMetaToggle={showMetaToggle}
+              titleValue={composer.form.title}
+            />
+          )}
+          metaVisible={metaVisible}
+          onClearSelectedFile={clearSelectedFile}
+          onContentChange={composer.updateContent}
+          onDragEnter={dragAndPaste.onDragEnter}
+          onDragLeave={dragAndPaste.onDragLeave}
+          onDragOver={dragAndPaste.onDragOver}
+          onDrop={dragAndPaste.onDrop}
+          onFileInputChange={dragAndPaste.onFileInputChange}
+          onOpenPicker={dragAndPaste.openPicker}
+          onPaste={dragAndPaste.onPaste}
+          onShortcut={composer.onShortcut}
+          textareaRef={dragAndPaste.textareaRef}
+        />
         <ComposerToolbar
           busy={composer.busy}
           canSubmit={composer.canSubmit}
