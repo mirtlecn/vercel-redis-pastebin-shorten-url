@@ -5,6 +5,28 @@ const PATH_SANITIZE_PATTERN = /[^a-zA-Z0-9_.\-()/]/g;
 const CREATED_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const CREATED_TIME_PATTERN = /^\d{2}:\d{2}$/;
 
+/**
+ * @typedef {object} ComposerForm
+ * @property {string} convert
+ * @property {string} path
+ * @property {string} title
+ * @property {string} createdDate
+ * @property {string} createdTime
+ * @property {string} topic
+ * @property {string} ttl
+ * @property {string} content
+ */
+
+/**
+ * @typedef {ComposerForm & { metaOpen?: boolean }} ComposerSnapshot
+ */
+
+/**
+ * @typedef {object} SelectedTopic
+ * @property {string} path
+ * @property {string} [title]
+ */
+
 export function buildInitialForm(topic = '') {
   return { convert: 'none', path: '', title: '', createdDate: '', createdTime: '', topic, ttl: '', content: '' };
 }

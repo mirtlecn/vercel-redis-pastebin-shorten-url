@@ -1,64 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { COPY_FEEDBACK_MS, DELETE_CONFIRM_MS, PAGE_SIZE } from '../config.js';
-import { icons } from '../icons/Icons.jsx';
-import { IconButton } from './IconButton.jsx';
+import { COPY_FEEDBACK_MS, DELETE_CONFIRM_MS } from '../config.js';
+import { getItemTypeLabel, paginateListItems } from '../lib/list-panel.js';
+import { ListPanelRow } from './ListPanelRow.jsx';
 
 export function ListPanel({ items, onCopy, onDelete, page, setPage }) {
   const [confirmPath, setConfirmPath] = useState('');
   const [deletingPath, setDeletingPath] = useState('');
   const [copiedPath, setCopiedPath] = useState('');
   const [isMobile, setIsMobile] = useState(false);
-  const pages = useMemo(() => Math.max(1, Math.ceil(items.length / PAGE_SIZE)), [items.length]);
-  const safe = useMemo(() => Math.min(page, pages), [page, pages]);
+  const { pages, rows, safePage } = useMemo(() => paginateListItems(items, page), [items, page]);
   const actionTooltip = isMobile ? 'left' : 'top';
-
-  function getTypeMeta(type) {
-    switch (type) {
-      case 'file':
-        return { icon: icons.fileBadge, label: 'file' };
-      case 'html':
-        return { icon: icons.fileCode, label: 'html' };
-      case 'topic':
-        return { icon: icons.folderTree, label: 'topic' };
-      case 'url':
-        return { icon: icons.link, label: 'url' };
-      case 'text':
-      default:
-        return { icon: icons.text, label: type || 'text' };
-    }
-  }
-
-  function ttlLabel(ttl) {
-    if (ttl == null) return 'never';
-    if (typeof ttl !== 'number' || Number.isNaN(ttl) || ttl <= 0) return 'never';
-    if (ttl < 60) return `${Math.round(ttl)}m`;
-    if (ttl < 1440) return `${Math.round(ttl / 60)}h`;
-    return `${Math.round(ttl / 1440)}d`;
-  }
-
-  function formatCreated(created) {
-    if (!created) return '';
-    if (created === 'illegal') return created;
-    const date = new Date(created);
-    if (Number.isNaN(date.getTime())) return created;
-
-    const year = String(date.getFullYear());
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-
-    return `${year}-${month}-${day} ${hours}:${minutes}`;
-  }
-
-  const rows = useMemo(
-    () => items.slice((safe - 1) * PAGE_SIZE, safe * PAGE_SIZE).map((item) => ({
-      ...item,
-      createdText: formatCreated(item.created),
-      ttlText: ttlLabel(item.ttl),
-    })),
-    [items, safe],
-  );
 
   useEffect(() => {
     const media = window.matchMedia('(max-width: 768px)');
@@ -151,81 +102,38 @@ export function ListPanel({ items, onCopy, onDelete, page, setPage }) {
           </thead>
           <tbody>
             {rows.map((item) => (
-              <tr key={item.path}>
-                {(() => {
-                  const typeMeta = getTypeMeta(item.type);
-                  const TypeIcon = typeMeta.icon;
-                  return (
-                    <>
-                <td className={pathColumnClassName}>
-                  <span className="block truncate font-medium" title={item.path}>{item.path}</span>
-                  {item.title ? (
-                    <span className="mt-1 flex items-center gap-1.5 truncate text-xs text-base-content/55" title={`${item.title} · ${typeMeta.label}`}>
-                      <TypeIcon className="size-3 shrink-0 opacity-55" strokeWidth={2} />
-                      <span className="truncate">{item.title}</span>
-                      <span className="shrink-0 text-base-content/38">·</span>
-                      <span className="shrink-0 lowercase text-base-content/42">{typeMeta.label}</span>
-                    </span>
-                  ) : (
-                    <span className="mt-1 flex items-center gap-1.5 truncate text-xs text-base-content/42 lowercase" title={typeMeta.label}>
-                      <TypeIcon className="size-3 shrink-0 opacity-55" strokeWidth={2} />
-                      <span className="truncate">{typeMeta.label}</span>
-                    </span>
-                  )}
-                </td>
-                <td className={metaColumnClassName}>
-                  <span className="block truncate text-sm text-base-content/72" title={item.created || ''}>
-                    {item.createdText || 'unknown'}
-                  </span>
-                  <span className="mt-1 block truncate text-xs text-base-content/42" title={item.ttlText}>
-                    {item.ttlText === 'never' ? 'never expires' : `TTL ${item.ttlText}`}
-                  </span>
-                </td>
-                <td className={previewColumnClassName} title={item.content}>{item.content}</td>
-                <td className="overflow-visible">
-                  <div className="flex justify-end gap-1.5 overflow-visible">
-                    <IconButton icon={icons.open} onClick={() => { setConfirmPath(''); window.open(item.surl, '_blank', 'noreferrer'); }} title="Open" tooltip={actionTooltip} />
-                    <IconButton
-                      className={copiedPath === item.path ? 'text-success' : ''}
-                      disabled={copiedPath === item.path}
-                      icon={copiedPath === item.path ? icons.check : icons.copy}
-                      onClick={() => copyLink(item.path, item.surl)}
-                      title={copiedPath === item.path ? 'Copied' : 'Copy'}
-                      tooltip={actionTooltip}
-                    />
-                    {deletingPath === item.path ? (
-                      <IconButton className="text-error opacity-80" disabled icon={icons.refresh} iconClassName="animate-spin" title="Deleting..." tooltip={actionTooltip} />
-                    ) : (
-                      <IconButton
-                        className={confirmPath === item.path ? 'text-warning hover:bg-warning/10' : 'text-error hover:bg-error/10'}
-                        data-delete-btn="true"
-                        data-path={item.path}
-                        icon={confirmPath === item.path ? icons.check : icons.delete}
-                        onClick={() => confirmDelete(item.path)}
-                        title={confirmPath === item.path ? 'Delete?' : 'Delete'}
-                        tooltip={actionTooltip}
-                      />
-                    )}
-                  </div>
-                </td>
-                    </>
-                  );
-                })()}
-              </tr>
+              <ListPanelRow
+                actionTooltip={actionTooltip}
+                confirmPath={confirmPath}
+                copiedPath={copiedPath}
+                deletingPath={deletingPath}
+                item={item}
+                key={item.path}
+                metaColumnClassName={metaColumnClassName}
+                onConfirmDelete={confirmDelete}
+                onCopyLink={copyLink}
+                onOpenLink={(surl) => {
+                  setConfirmPath('');
+                  window.open(surl, '_blank', 'noreferrer');
+                }}
+                pathColumnClassName={pathColumnClassName}
+                previewColumnClassName={previewColumnClassName}
+                typeLabel={getItemTypeLabel(item.type)}
+              />
             ))}
           </tbody>
         </table>
       </div>
       <div className="mt-5 flex justify-center gap-2">
-        <button className="btn btn-sm" disabled={safe <= 1} onClick={() => setPage(safe - 1)}>
+        <button className="btn btn-sm" disabled={safePage <= 1} onClick={() => setPage(safePage - 1)}>
           {'<'}
         </button>
         {Array.from({ length: pages }, (_, i) => i + 1).map((n) => (
-          <button key={n} className={`btn btn-sm ${n === safe ? 'btn-active' : ''}`} onClick={() => setPage(n)}>
+          <button key={n} className={`btn btn-sm ${n === safePage ? 'btn-active' : ''}`} onClick={() => setPage(n)}>
             {n}
           </button>
         ))}
-        <button className="btn btn-sm" disabled={safe >= pages} onClick={() => setPage(safe + 1)}>
+        <button className="btn btn-sm" disabled={safePage >= pages} onClick={() => setPage(safePage + 1)}>
           {'>'}
         </button>
       </div>
