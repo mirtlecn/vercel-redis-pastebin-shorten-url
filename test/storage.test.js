@@ -2,12 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import {
+  DEFAULT_JSON_BODY_MAX_BYTES,
+  RequestBodyTooLargeError,
   buildCurrentCreatedValue,
   buildStoredValue,
   normalizeCreatedInput,
   parseStoredValue,
   previewContent,
   parseRequestBody,
+  parseRequestBodyWithLimit,
   resolveStoredCreated,
 } from '../lib/utils/storage.js';
 
@@ -58,6 +61,33 @@ test('parseRequestBody rejects invalid json', async () => {
   request.emit('data', Buffer.from('{bad json'));
   request.emit('end');
   await assert.rejects(bodyPromise);
+});
+
+test('parseRequestBodyWithLimit parses valid json within the configured size', async () => {
+  const request = new EventEmitter();
+  const bodyPromise = parseRequestBodyWithLimit(request, { maxBytes: 32 });
+  request.emit('data', Buffer.from('{"ok":'));
+  request.emit('data', Buffer.from('true}'));
+  request.emit('end');
+
+  assert.deepEqual(await bodyPromise, { ok: true });
+});
+
+test('parseRequestBodyWithLimit rejects oversized requests before parsing', async () => {
+  const request = new EventEmitter();
+  const bodyPromise = parseRequestBodyWithLimit(request, { maxBytes: 8 });
+  request.emit('data', Buffer.from('{"hello":"world"}'));
+
+  await assert.rejects(bodyPromise, (error) => {
+    assert.equal(error instanceof RequestBodyTooLargeError, true);
+    assert.equal(error.status, 413);
+    assert.equal(error.maxBytes, 8);
+    return true;
+  });
+});
+
+test('parseRequestBody keeps the default 512KB limit for callers that do not override it', () => {
+  assert.equal(DEFAULT_JSON_BODY_MAX_BYTES, 512 * 1024);
 });
 
 test('normalizeCreatedInput accepts supported formats and stores UTC RFC3339', () => {

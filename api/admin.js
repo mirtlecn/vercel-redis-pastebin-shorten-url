@@ -17,9 +17,16 @@ function withSecretAuthorization(req) {
   return wrapped;
 }
 
-export default async function handler(req, res) {
-  if (!isAdminRequestAuthenticated(req)) {
-    return errorResponse(res, { code: 'unauthorized', message: 'Unauthorized' }, 401);
-  }
-  return handleApiRoot(withSecretAuthorization(req), res);
+export function createAdminApiHandler({
+  authenticate = isAdminRequestAuthenticated,
+  apiHandler = handleApiRoot,
+} = {}) {
+  return async function handler(req, res) {
+    if (!await authenticate(req)) {
+      return errorResponse(res, { code: 'unauthorized', message: 'Unauthorized' }, 401);
+    }
+    return apiHandler(withSecretAuthorization(req), res);
+  };
 }
+
+export default createAdminApiHandler();
