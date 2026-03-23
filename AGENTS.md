@@ -82,14 +82,21 @@ npm test
 
 Runs:
 
-- `npm run test:unit`
+- `npm run test:quick`
 - `npm run test:smoke:web:local`
+- `npm run test:smoke:api:local`
 
 ### Other useful test commands
 
 ```bash
+# Quick unit suite only
+npm run test:quick
+
 # Unit tests only
 npm run test:unit
+
+# Both local smoke suites
+npm run test:smoke:local
 
 # Admin/web smoke suite only
 npm run test:smoke:web:local
@@ -103,6 +110,8 @@ npm run test:all
 
 Notes:
 
+- `test:quick` runs only `node --test`.
+- `test:smoke:local` runs both local smoke suites without re-running unit tests.
 - `test:smoke:web:local` covers `/admin`, `/api/admin`, and main JSON API flows using shell assertions.
 - `test:smoke:api:local` is the deeper API contract smoke suite.
 - `test:smoke:web:vercel` is optional and should not be added to the default chain unless the environment is known to have `vercel dev`.

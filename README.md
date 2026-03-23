@@ -17,6 +17,8 @@ Write operations require the header `Authorization: Bearer <SECRET_KEY>`.
 `ttl` values are optional, use minutes, and must be between `0` and `525600` (`365` days). `0` means no expiration.
 Write requests may include an optional `created` string. Accepted input formats are `RFC3339`, `RFC3339Nano`, `YYYY-MM-DD HH:MM:SS`, and date-only `YYYY-MM-DD`, `YYYY.MM.DD`, `YYYY/MM/DD`. Values without a timezone are parsed as `Asia/Shanghai`, then stored and returned as UTC `RFC3339`.
 `type: "topic"` accepts an optional `title`. Topic displays use that `title` when present, otherwise they fall back to the topic path.
+Deleting a topic with `type: "topic"` removes only the topic home entry and its index. Existing topic child entries are intentionally kept in storage.
+Topic counts and topic page rendering are based on the maintained topic index, not on a recursive live scan at read time.
 Multipart file uploads keep an explicit part `Content-Type` when it is specific. Empty or generic binary values are normalized server-side from the filename extension or file signature before the object is stored.
 Markdown writes accept `type: "md"` and the legacy alias `type: "md2html"` / `convert: "md2html"`. Both store the original Markdown source as `type: "md"`. Public reads render that source to HTML at request time, while authenticated list / lookup / export responses return the stored Markdown source.
 QRCode writes accept `type: "qrcode"` / `convert: "qrcode"`. The original input text is stored as `type: "qrcode"`. Public reads render the QR text at request time, while authenticated list / lookup / export responses return the stored source text.
@@ -56,14 +58,17 @@ Prerequisites:
 # Install dependencies
 npm install
 
-# Run the default test suite: unit + local web smoke
+# Run the default local regression suite: unit + both local smoke suites
 npm test
 
-# Run all local test suites, including the API smoke suite
-npm run test:all
+# Run only the quick unit suite
+npm run test:quick
 
 # Run only unit tests
 npm run test:unit
+
+# Run both local smoke suites without re-running unit tests
+npm run test:smoke:local
 
 # Run only the local admin/web smoke suite
 npm run test:smoke:web:local
@@ -101,8 +106,10 @@ Env:
 
 ## Testing
 
-- `npm test`: default CI-like local check. Runs unit tests and the local admin/web smoke suite.
-- `npm run test:all`: runs unit tests, the local admin/web smoke suite, and the local API smoke suite.
+- `npm test`: default local regression chain. Runs `test:quick`, `test:smoke:web:local`, and `test:smoke:api:local`.
+- `npm run test:all`: compatibility alias for `npm test`.
+- `npm run test:quick`: runs only the unit test suite.
+- `npm run test:smoke:local`: runs the local admin/web smoke suite and the local API smoke suite.
 - `npm run test:smoke:web:local`: starts the local app with a dedicated Redis DB and exercises `/admin`, `/api/admin`, and the main JSON API with shell assertions.
 - `npm run test:smoke:api:local`: starts the local app with a dedicated Redis DB and runs the API-focused smoke suite in [test/functional/smoke-api.sh](test/functional/smoke-api.sh).
 - `npm run test:smoke:web:vercel`: reserved for environments where `vercel dev` is available. It is not part of the default test chain.

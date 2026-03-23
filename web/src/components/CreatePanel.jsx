@@ -426,13 +426,13 @@ export function CreatePanel(props) {
               <textarea
                 ref={textareaRef}
                 className={`textarea textarea-ghost composer-textarea ${metaVisible ? 'composer-textarea-with-meta' : 'composer-textarea-with-meta-icon'} ${globalDragging ? 'composer-textarea-hidden' : ''}`}
-                onChange={(event) => composer.updateUrl(event.target.value)}
+                onChange={(event) => composer.updateContent(event.target.value)}
                 onKeyDown={composer.onShortcut}
                 onPaste={onPaste}
                 placeholder={editorPlaceholder}
-                value={composer.form.url}
+                value={composer.form.content}
               />
-              {!composer.isTopicMode && !composer.form.url.trim() && !globalDragging && (
+              {!composer.isTopicMode && !composer.form.content.trim() && !globalDragging && (
                 <div className={`composer-hint ${metaVisible ? 'composer-hint-shifted' : ''}`}>
                   <span>Input texts or </span>
                   <button className="composer-hint-upload" onClick={openPicker} type="button">

@@ -68,7 +68,7 @@ export function useComposer({ notify, onCreated, selectedTopicPath = '', topics 
   }
 
   async function submitText() {
-    if (!form.url.trim()) throw new Error('Content is required');
+    if (!form.content.trim()) throw new Error('Content is required');
     const body = buildTextRequestBody(form);
     const payload = await apiRequest({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     notify('success', 'Created');
@@ -92,8 +92,8 @@ export function useComposer({ notify, onCreated, selectedTopicPath = '', topics 
     updateFormValue('createdTime', value.slice(0, 5));
   }
 
-  function updateUrl(value) {
-    updateFormValue('url', isTopicCreateType(form.convert) ? normalizeTopicNameValue(value) : value);
+  function updateContent(value) {
+    updateFormValue('content', isTopicCreateType(form.convert) ? normalizeTopicNameValue(value) : value);
   }
 
   function updateTtl(value) {
@@ -155,7 +155,7 @@ export function useComposer({ notify, onCreated, selectedTopicPath = '', topics 
     updatePath,
     updateTitle,
     updateTopic,
-    updateUrl,
+    updateContent,
     updateFormValue,
     updateCreatedDate,
     updateCreatedTime,

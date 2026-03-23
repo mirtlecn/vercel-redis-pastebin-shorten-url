@@ -6,7 +6,7 @@ const CREATED_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const CREATED_TIME_PATTERN = /^\d{2}:\d{2}$/;
 
 export function buildInitialForm(topic = '') {
-  return { convert: 'none', path: '', title: '', createdDate: '', createdTime: '', topic, ttl: '', url: '' };
+  return { convert: 'none', path: '', title: '', createdDate: '', createdTime: '', topic, ttl: '', content: '' };
 }
 
 export function isTopicCreateType(convert) {
@@ -41,7 +41,7 @@ export function buildTopicModeForm() {
     createdTime: '',
     topic: '',
     ttl: '',
-    url: '',
+    content: '',
   };
 }
 
@@ -55,7 +55,7 @@ export function buildRestoredForm(snapshot, fallbackTopic = '') {
     createdTime: snapshot.createdTime || '',
     topic: snapshot.topic ?? fallbackTopic,
     ttl: snapshot.ttl || '',
-    url: snapshot.url || '',
+    content: snapshot.content || snapshot.url || '',
   };
 }
 
@@ -75,7 +75,7 @@ export function buildTextRequestBody(form) {
 
   if (isTopicCreateType(form.convert)) {
     const body = {
-      path: normalizeTopicNameValue(form.url.trim()),
+      path: normalizeTopicNameValue(form.content.trim()),
       type: TOPIC_CREATE_TYPE,
     };
     if (form.title.trim()) body.title = form.title.trim();
@@ -83,7 +83,7 @@ export function buildTextRequestBody(form) {
     return body;
   }
 
-  const body = { url: form.url.trim() };
+  const body = { url: form.content.trim() };
   if (form.path.trim()) body.path = form.path.trim();
   if (form.title.trim()) body.title = form.title.trim();
   if (created) body.created = created;
@@ -108,9 +108,9 @@ export function buildFileUploadData(form, file) {
 export function canSubmitComposerForm({ busy, file, form }) {
   if (busy) return false;
   if (isTopicCreateType(form.convert)) {
-    return !file && Boolean(normalizeTopicNameValue(form.url.trim()));
+    return !file && Boolean(normalizeTopicNameValue(form.content.trim()));
   }
-  return Boolean(file || form.url.trim());
+  return Boolean(file || form.content.trim());
 }
 
 export function getComposerUiState({

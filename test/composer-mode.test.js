@@ -34,7 +34,7 @@ test('buildTextRequestBody emits topic mutation payload for topic mode', () => {
     ttl: '1440',
     topic: 'nested/topic',
     path: 'ignored/path',
-    url: '  anime/\ncastle  ',
+    content: '  anime/\ncastle  ',
   };
 
   assert.deepEqual(buildTextRequestBody(form), {
@@ -55,7 +55,7 @@ test('buildTextRequestBody keeps regular composer payload fields outside topic m
     createdTime: '',
     topic: 'anime',
     ttl: '60',
-    url: 'hello',
+    content: 'hello',
   };
 
   assert.deepEqual(buildTextRequestBody(form), {
@@ -78,14 +78,14 @@ test('buildTopicModeForm clears all fields and forces topic type', () => {
     createdTime: '',
     topic: '',
     ttl: '',
-    url: '',
+    content: '',
   });
 });
 
 test('buildRestoredForm falls back to defaults for empty snapshot fields', () => {
   assert.deepEqual(
-    buildRestoredForm({ convert: '', path: '', title: '', createdDate: '', createdTime: '', topic: '', ttl: '', url: '' }, 'selected/topic'),
-    { convert: 'none', path: '', title: '', createdDate: '', createdTime: '', topic: '', ttl: '', url: '' },
+    buildRestoredForm({ convert: '', path: '', title: '', createdDate: '', createdTime: '', topic: '', ttl: '', content: '' }, 'selected/topic'),
+    { convert: 'none', path: '', title: '', createdDate: '', createdTime: '', topic: '', ttl: '', content: '' },
   );
 });
 
@@ -99,7 +99,7 @@ test('buildRestoredForm rebuilds a saved composer snapshot', () => {
       createdTime: '08:09',
       topic: 'anime',
       ttl: '30',
-      url: '# heading',
+      content: '# heading',
     }, 'selected/topic'),
     {
       convert: 'md2html',
@@ -109,7 +109,7 @@ test('buildRestoredForm rebuilds a saved composer snapshot', () => {
       createdTime: '08:09',
       topic: 'anime',
       ttl: '30',
-      url: '# heading',
+      content: '# heading',
     },
   );
 });
@@ -118,13 +118,13 @@ test('canSubmitComposerForm requires a valid topic name in topic mode', () => {
   assert.equal(canSubmitComposerForm({
     busy: false,
     file: null,
-    form: { ...buildInitialForm(''), convert: TOPIC_CREATE_TYPE, url: 'topic/name' },
+    form: { ...buildInitialForm(''), convert: TOPIC_CREATE_TYPE, content: 'topic/name' },
   }), true);
 
   assert.equal(canSubmitComposerForm({
     busy: false,
     file: null,
-    form: { ...buildInitialForm(''), convert: TOPIC_CREATE_TYPE, url: '???\n' },
+    form: { ...buildInitialForm(''), convert: TOPIC_CREATE_TYPE, content: '???\n' },
   }), false);
 });
 
@@ -132,19 +132,19 @@ test('canSubmitComposerForm supports normal text and file submits outside topic 
   assert.equal(canSubmitComposerForm({
     busy: false,
     file: null,
-    form: { ...buildInitialForm(''), convert: 'none', url: 'hello' },
+    form: { ...buildInitialForm(''), convert: 'none', content: 'hello' },
   }), true);
 
   assert.equal(canSubmitComposerForm({
     busy: false,
     file: { name: 'demo.png' },
-    form: { ...buildInitialForm(''), convert: 'none', url: '' },
+    form: { ...buildInitialForm(''), convert: 'none', content: '' },
   }), true);
 
   assert.equal(canSubmitComposerForm({
     busy: true,
     file: { name: 'demo.png' },
-    form: { ...buildInitialForm(''), convert: 'none', url: '' },
+    form: { ...buildInitialForm(''), convert: 'none', content: '' },
   }), false);
 });
 

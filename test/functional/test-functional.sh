@@ -172,6 +172,25 @@ expect_status 200
 expect_body_contains '"authenticated":true'
 log "管理会话通过"
 
+CURRENT_STEP="管理登出"
+request DELETE "$BASE_URL/api/admin/session" "" -b "$COOKIE_JAR"
+expect_status 200
+expect_body_contains '"ok":true'
+log "管理登出通过"
+
+CURRENT_STEP="管理登出后会话失效"
+request GET "$BASE_URL/api/admin/session" "" -b "$COOKIE_JAR"
+expect_status 401
+log "管理登出失效通过"
+
+CURRENT_STEP="管理重新登录"
+request POST "$BASE_URL/api/admin/session" "{\"password\":\"$ADMIN_PASSWORD\"}" \
+  -c "$COOKIE_JAR" \
+  -H "Content-Type: application/json"
+expect_status 200
+expect_body_contains '"authenticated":true'
+log "管理重新登录通过"
+
 CURRENT_STEP="管理列表"
 request GET "$BASE_URL/api/admin" "" -b "$COOKIE_JAR"
 expect_status 200

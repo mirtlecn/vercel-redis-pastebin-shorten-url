@@ -484,7 +484,7 @@ ENTRY_REDIS_VALUE="$(redis-cli -n "$REDIS_DB" GET "surl:$STORAGE_ENTRY_PATH")"
 ORPHAN_REDIS_VALUE="$(redis-cli -n "$REDIS_DB" GET "surl:$STORAGE_ORPHAN_PATH")"
 TOPIC_REDIS_VALUE="$(redis-cli -n "$REDIS_DB" GET "surl:$STORAGE_TOPIC_PATH")"
 TOPIC_REDIS_MEMBERS="$(redis-cli -n "$REDIS_DB" ZRANGE "$STORAGE_TOPIC_ITEMS_KEY" 0 -1)"
-expect_redis_contains "$ENTRY_REDIS_VALUE" '"type":"html"'
+expect_redis_contains "$ENTRY_REDIS_VALUE" '"type":"md"'
 expect_redis_contains "$ENTRY_REDIS_VALUE" '"title":"Entry Title"'
 expect_redis_contains "$ORPHAN_REDIS_VALUE" '"type":"text"'
 expect_redis_contains "$ORPHAN_REDIS_VALUE" '"title":"Orphan Title"'
@@ -620,12 +620,12 @@ expect_status 200
 expect_body_contains "<div style=\"font-size: 1.3em; font-weight: bold\">$RENDER_TOPIC_UPDATED_TITLE</div>"
 log "更新 title 后新 md2html 使用新 topic title 通过"
 
-CURRENT_STEP="旧 md2html 不追溯更新 topic title"
+CURRENT_STEP="旧 md2html 使用当前 topic title"
 request GET "$BASE_URL/$RENDER_HTML_ITEM_PATH"
 expect_status 200
-expect_body_contains "<div style=\"font-size: 1.3em; font-weight: bold\">$RENDER_TOPIC_TITLE</div>"
-expect_body_not_contains "<div style=\"font-size: 1.3em; font-weight: bold\">$RENDER_TOPIC_UPDATED_TITLE</div>"
-log "旧 md2html 不追溯更新 topic title 通过"
+expect_body_contains "<div style=\"font-size: 1.3em; font-weight: bold\">$RENDER_TOPIC_UPDATED_TITLE</div>"
+expect_body_not_contains "<div style=\"font-size: 1.3em; font-weight: bold\">$RENDER_TOPIC_TITLE</div>"
+log "旧 md2html 使用当前 topic title 通过"
 
 CURRENT_STEP="render topic 首页渲染"
 request GET "$BASE_URL/$RENDER_TOPIC_PATH"
@@ -646,7 +646,7 @@ expect_body_contains " · $CURRENT_DATE"
 expect_body_not_contains "  · "
 log "render topic 首页渲染通过"
 
-CURRENT_STEP="topic 首页优先按 created 排序并在非法值时回退 score"
+CURRENT_STEP="topic 首页按 created 排序并在非法值时回退 score"
 request POST "$BASE_URL" "{\"path\":\"$CREATED_SORT_TOPIC_PATH\",\"type\":\"topic\"}" \
   -H "Authorization: Bearer $SECRET_KEY" \
   -H "Content-Type: application/json"
@@ -676,10 +676,10 @@ OLD_OFFSET="$(printf '%s' "$LAST_BODY" | /usr/bin/grep -b -o '/'"$CREATED_SORT_O
 if [ -z "$NEW_OFFSET" ] || [ -z "$FALLBACK_OFFSET" ] || [ -z "$OLD_OFFSET" ]; then
   fail "topic created 排序检查缺少目标链接"
 fi
-if [ "$NEW_OFFSET" -ge "$FALLBACK_OFFSET" ] || [ "$FALLBACK_OFFSET" -ge "$OLD_OFFSET" ]; then
-  fail "topic created 排序不符合预期"
+if [ "$FALLBACK_OFFSET" -ge "$NEW_OFFSET" ] || [ "$NEW_OFFSET" -ge "$OLD_OFFSET" ]; then
+  fail "topic created / score 排序不符合预期"
 fi
-log "topic 首页 created 排序通过"
+log "topic 首页 created / score 排序通过"
 
 CURRENT_STEP="缺失 topic 的负面路径"
 request POST "$BASE_URL" "{\"topic\":\"missing-$RENDER_TOPIC_PATH\",\"path\":\"x\",\"url\":\"hello\",\"type\":\"text\"}" \

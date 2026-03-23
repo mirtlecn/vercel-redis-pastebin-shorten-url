@@ -469,7 +469,7 @@ test('deleteTopicItem rolls back when topic rebuild fails', async () => {
   assert.match(topicHome.content, /href="\/anime\/castle"/);
 });
 
-test('deleteTopic removes only topic home and topic index', async () => {
+test('deleteTopic intentionally removes only topic home and topic index', async () => {
   const redis = new FakeRedis();
   await createTopic(redis, 'anime', { created: '2026-03-19T10:00:01Z', createdProvided: true });
   await writeTopicItem({
